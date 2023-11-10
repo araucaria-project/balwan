@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os,sys
 import numpy as np
 import scipy
@@ -32,7 +33,7 @@ from animation import *
 #irsb file is specified below, its format: name term0 term1 term2 ..., one relation in line, without empty lines, lines can be commented with #
 #TODO zrobic przyciski do alternatywnego wybierania algorytmu fitowania metnk/bisect... dopracowac bisect, bo moja uproszczona wersja daje stabilne wyniki (zawsze bliskie metnk)
 
-irsbfile = './irsb.dat'	
+irsbfile = '/home/piotr/src/balwan/irsb.dat'	
 
 def parse_file(plik):
 	dane=os.popen('cat '+plik).read().split('\n')[:-1]

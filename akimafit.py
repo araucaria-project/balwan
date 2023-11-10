@@ -130,7 +130,7 @@ class signal():
 		try:
 			for i,t in enumerate(self.time):
 				periodt = period[0]+period[1]*(self.time[i]-period[2])/365.25
-				self.phase.append((((self.time[i]-self.hjd0)%periodt)/periodt)+self.ps)
+				self.phase.append((((self.time[i]-self.hjd0+self.ps*periodt)%periodt)/periodt))
 				
 		except:
 			self.phase = np.divide(np.mod(np.add(np.subtract(self.time,self.hjd0),self.ps*period),period),period)
