@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 import scipy
-from bw_lib import Akimaspline
 import os,sys
-import matplotlib.pyplot as plt
 import numpy as np
 from random import sample
 from abl_fit import param,random
-from scipy.optimize import curve_fit
 	
 
 def toflux(x):
@@ -20,25 +17,24 @@ def nottoflux(x):
 def nottomag(x):
 	return x
 
-
-
 class signal():
-	def __init__(self,plik,tcol,mcol,ercol,period,k,n,shift=0.,name='',sc=None,hjd0=None,flux=True,ph=True,tomean=False,ps=0.,downlimit=-500.,uplimit=500,template_file = ''):
+	def __init__(self,plik,tcol,mcol,ercol,templ_plik,tcol_templ,mcol_templ,period,name='',sc=None,hjd0=None,flux=True,ph=True,tomean=False,ps=0.,downlimit=-500.,uplimit=500):
 		self.plik = plik
 		self.tcol=tcol
 		self.mcol=mcol
 		self.ercol=ercol
+		self.templ_plik = templ_plik
+		self.tcol_templ=tcol_templ
+		self.mcol_templ=mcol_templ
 		self.period = period
-		self.shift = shift
-		print(self.period)
 		self.name = name
-		self.k = k#knots step
-		self.n = n#size of bin
 		self.time = []#hjds
 		self.mag = []#mags/rvs
 		self.magerr = []#errors
 		self.x = None#modeled lc phase
 		self.y = None#modeled lc mags or rv
+		self.templ_x = []
+		self.templ_y = []
 		self.yerr = None
 		self.phasepts = []#array of objects of "parameter" class used to calculate mean value and error in each phase
 		self.phasepts_plot = []
@@ -48,36 +44,25 @@ class signal():
 		self.mag_orig = []
 		self.ps=ps
 		self.tomean=tomean
-		self.template_file = template_file.split('[')[0]
-		try:
-			self.template_tcol = int(template_file.split('[')[1].split(',')[0])
-			self.template_mcol = int(template_file.split('[')[1].replace(']','',1).split(',')[1])
-		except:
-			self.template_tcol = 0
-			self.template_tcol = 1
-
+		#self.template_file = template_file
+		
 		
 		self.read(tcol,mcol,ercol,sc=sc,downlimit=downlimit,uplimit=uplimit)
-		
+		self.read_template(tcol,mcol,ercol,sc=sc,downlimit=downlimit,uplimit=uplimit)
 		if hjd0 != None:
 			self.findhjd = False
 			self.hjd0 = float(hjd0)
+			#print 'hjd0',self.hjd0
 			
 		else:
 			self.findhjd = True
 			self.hjd0 = self.time[np.argmin(self.mag)]
+			#print 'hjd0',self.hjd0
+		
 		if ph == True:
 			self.phasing(self.period)
 		else:
 			self.phase=self.time
-		
-		if len(self.template_file) > 0:
-			self.read_template()
-			self.template_fit()
-
-		
-		
-		
 		
 		if flux == True:
 			self.toflux = toflux
@@ -90,9 +75,10 @@ class signal():
 
 		self.flux = self.toflux(self.mag)
 		
+		#print self.magerr,self.fluxerr,self.flux
 		self.x,self.y,self.akima = self.fit(self.phase,self.flux,self.k,self.n)
 		self.meanval = self.tomag(self.mean(self.akima))
-		
+		#self.clean(3)
 
 	def read(self,tc,mc,ec,sc=None,downlimit=-500.,uplimit=500):
 		plik = os.popen('cat '+self.plik).read().split('\n')[:-1]
@@ -106,7 +92,7 @@ class signal():
 
 				if float(dane[mc]) > downlimit and float(dane[mc]) < uplimit:
 					self.time.append(float(dane[tc]))
-					self.mag.append(float(dane[mc])+self.shift)
+					self.mag.append(float(dane[mc]))
 					self.magerr.append(float(dane[ec]))
 					
 					#MINIMAL PHOTOMETRIC ERROR IS SET TO 0.02!!!!!!!!!!!!!!!!
@@ -118,79 +104,30 @@ class signal():
 					else:
 						self.sources.append('')
 
-	def f_shift(self,x,a,b,c):#return template model but shifted to fit the data
-		f= np.multiply(np.add(self.template_model(np.add(x,b)),a),c)
-		return f
-	
-	def template_fit(self):
-		p0 = (1.,np.mean(self.mag)-np.mean(self.template_mag),1.)
-		popt,pcov=curve_fit(self.f_shift,self.phase,self.mag,p0=p0)
-		self.templ_mag_shift = popt[0]
-		self.templ_phase_shift = popt[1]
-		self.templ_ampl = popt[2]
-		if self.templ_phase_shift > 1.:
-			self.templ_phase_shift = self.templ_phase_shift - 1.
-
-		print(self.templ_mag_shift,self.templ_phase_shift,self.templ_ampl)
+		#print self.sources
 
 	def read_template(self):
-		txt = os.popen('cat '+self.template_file).read().split('\n')[:-1]
-		self.template_time = []
-		self.template_mag = []
-		for linia in txt:
-			
-			if '#' not in linia and ',' in linia:
-				self.template_time.append(float(linia.split(',')[self.template_tcol]))	
-				self.template_mag.append(float(linia.split(',')[self.template_mcol]))
-			elif '#' not in linia:
-				self.template_time.append(float(linia.split()[self.template_tcol]))	
-				self.template_mag.append(float(linia.split()[self.template_mcol]))
-
-		
-		self.template_phasing(self.period)
-		self.template_model = Akimaspline(self.template_phase,self.template_mag,k=0.04, n=0.04)
-		sigma = np.std(np.subtract(self.template_mag,self.template_model(self.template_phase)))
-		print("sigma",sigma)
-		time = []
-		mag = []
-		for i,pt in enumerate(self.template_phase):
-			if np.abs(np.subtract(self.template_mag[i],self.template_model(self.template_phase[i]))) < 2.*sigma:
-				time.append(self.template_time[i])
-				mag.append(self.template_mag[i])
-
-		self.template_time = time
-		self.template_mag = mag
-		self.template_phasing(self.period)
-		self.template_model = Akimaspline(self.template_phase,self.template_mag,k=0.03, n=0.03)
-		plt.plot(self.template_phase,self.template_mag,'.',color='black')
-		phases = np.arange(0,1,0.01)
-		plt.plot(phases,self.template_model(phases),'-',color='green')
-		plt.gca().invert_yaxis()
-		plt.show()
-
-	
-	def template_phasing(self,period=None,ps=0.):
-		self.template_phase = []
-		if period==None:
-			period=self.period
-
-		print('period',period)
-		try:
-			for i,t in enumerate(self.template_time):
-				periodt = period[0]+period[1]*(self.template_time[i]-period[2])/365.25
-				self.template_phase.append((((self.template_time[i]-self.hjd0+self.ps*periodt)%periodt)/periodt))
+		plik = os.popen('cat '+self.template_plik).read().split('\n')[:-1]
+		for linia in plik:
+			if '#' not in linia:
 				
-		except:
-			self.template_phase = np.divide(np.mod(np.add(np.subtract(self.template_time,self.hjd0),self.ps*period),period),period)
+				if ',' in linia:
+					dane = linia.split(',')
+				else:
+					dane = linia.split()
 
-		self.template_phase = np.array(self.template_phase)
-	 
+				self.templ_x.append(float(dane[self.tcol_templ]))
+				self.templ_y.append(float(dane[self.mcol_templ]))
+		 
 
 	def phasing(self,period=None,ps=0.):
+		#self.hjd0 = 0.
 		self.phase = []
 		if period==None:
 			period=self.period
 
+		#period = [1.583579,-0.00000115,2441687.7561]
+		#self.period = period[0]
 		try:
 			for i,t in enumerate(self.time):
 				periodt = period[0]+period[1]*(self.time[i]-period[2])/365.25
@@ -347,8 +284,7 @@ class signal():
 
 		for i in range(n):
 			
-			#subset = sample(np.arange(0,len(self.flux),1),int(fraction*len(self.flux)))
-			subset = np.arange(0,len(self.flux),1)
+			subset = sample(np.arange(0,len(self.flux),1),int(fraction*len(self.flux)))
 			fluxnew_orig=[]
 			fluxerr_new = []
 			phasenew = []
@@ -404,17 +340,18 @@ class signal():
 		#print maxt,ph
 		c = 0
 		for i,x in enumerate(self.x):
-			if self.line[i] >= self.mean_mc.mean and c == 0:
+			if self.line[i] <= self.mean_mc.mean and c == 0:
 				continue
-			elif self.line[i] < self.mean_mc.mean and c == 0:
+			elif self.line[i] > self.mean_mc.mean and c == 0:
 				c=1
 				continue
-			elif self.line[i] < self.mean_mc.mean and c == 1:
+			elif self.line[i] > self.mean_mc.mean and c == 1:
 				c=1
 				continue
-			elif self.line[i] >= self.mean_mc.mean and c == 1:
+			elif self.line[i] <= self.mean_mc.mean and c == 1:
 				phase0 = x
 				break
+
 		#print phase0
 		#print self.hjd0
 		self.hjd0 = maxt+(phase0-ph)*self.period

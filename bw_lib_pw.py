@@ -46,6 +46,7 @@ class balwan():
 
 		self.phase_plot = np.arange(0,1.001,0.001)
 		self.v_kphase = []
+		self.del_v_kphase = []
 		self.vk = []
 		self.dr = []	
 		self.dr_del = []
@@ -107,13 +108,25 @@ class balwan():
 		self.vk_plot = []
 		self.v_kphase= []
 		self.vk = []
-		for i,pt in enumerate(self.phase_plot):
-			self.v_plot.append(self.v.tomag(self.v.akima.__call__(pt)))
-			self.vk_plot.append(self.v.tomag(self.v.akima.__call__(pt))-self.k.tomag(self.k.akima.__call__(pt)))
-		for i,pt in enumerate(self.k.phase):
-			self.v_kphase.append(self.v.tomag(self.v.akima.__call__(pt)))
-			self.vk.append(self.v.tomag(self.v.akima.__call__(pt))-self.k.mag[i])
-			#self.vk_err.append
+		if self.v.template_file == '':
+			for i,pt in enumerate(self.phase_plot):
+				self.v_plot.append(self.v.tomag(self.v.akima.__call__(pt)))
+				self.vk_plot.append(self.v.tomag(self.v.akima.__call__(pt))-self.k.tomag(self.k.akima.__call__(pt)))
+			for i,pt in enumerate(self.k.phase):
+				self.v_kphase.append(self.v.tomag(self.v.akima.__call__(pt)))
+				self.vk.append(self.v.tomag(self.v.akima.__call__(pt))-self.k.mag[i])
+				#self.vk_err.append'''
+
+	
+		else:
+			for i,pt in enumerate(self.phase_plot):
+				
+				self.v_plot.append(self.v.f_shift(pt,self.v.templ_mag_shift,self.v.templ_phase_shift,self.v.templ_ampl))
+				self.vk_plot.append(self.v.f_shift(pt,self.v.templ_mag_shift,self.v.templ_phase_shift,self.v.templ_ampl)-self.k.tomag(self.k.akima.__call__(pt)))
+			for i,pt in enumerate(self.k.phase):
+				self.v_kphase.append(self.v.f_shift(pt,self.v.templ_mag_shift,self.v.templ_phase_shift,self.v.templ_ampl))
+				self.vk.append(self.v.f_shift(pt,self.v.templ_mag_shift,self.v.templ_phase_shift,self.v.templ_ampl)-self.k.mag[i])
+			
 
 	def irsb(self,vk,ebv):
 		vk = np.array(vk)
@@ -145,17 +158,17 @@ class balwan():
 		#fv2 = np.add(np.multiply(self.irsba,np.subtract(self.vk_plot,(self.R_V-self.R_K)*self.ebv)),self.irsbb)
 		#self.fi_plot = np.multiply(np.power(10.,np.multiply(-2.,np.add(np.multiply(0.1,np.subtract(self.v_plot,self.R_V*self.ebv)),np.subtract(fv2,4.2207)))),np.pi/(180.*3600.*1000.))
 
-		akima = Akimaspline(self.k.phase,fi,0.1,0.1)
-		self.fi_akima = akima
-		for i,pt in enumerate(self.phase_plot):
-			self.fi_plot.append(akima.__call__(pt))
+		#akima = Akimaspline(self.k.phase,fi,0.1,0.1)
+		#self.fi_akima = akima
+		#for i,pt in enumerate(self.phase_plot):
+		#	self.fi_plot.append(akima.__call__(pt))
 			
 		
 			#fv=self.irsb(self.vk_plot[i],ebv)
 			#self.fi_plot.append(np.multiply(np.power(10.,np.multiply(-2.,np.add(np.multiply(0.1,np.subtract(self.v.y[i],self.R_V*ebv)),np.subtract(fv,4.2207)))),np.pi/(180.*3600.*1000.)))
 		self.fi = np.array(self.fi)
 		self.fi_del = np.array(self.fi_del)
-		self.fi_plot=np.array(self.fi_plot)
+		#self.fi_plot=np.array(self.fi_plot)
 
 	
 		
@@ -359,8 +372,8 @@ class balwan():
 				self.fi_err.append(fi_err_param[i].std)
 				dr_err_param[i].srednia()
 				self.dr_err.append(dr_err_param[i].std)
-				if i ==0:
-					dr_err_param[i].hist(10)
+				#if i ==0:
+				#	dr_err_param[i].hist(10)
 
 			for i,pt in enumerate(self.phase_del):
 				fi_err_param_del[i].srednia()
@@ -391,7 +404,7 @@ class balwan():
 			p.srednia()
 			fi.srednia()
 			p.hist(50)
-			fi.hist(50)
+			#fi.hist(50)
 			self.p = p.mean
 			self.sigmap = p.std
 			self.fi0 = fi.mean

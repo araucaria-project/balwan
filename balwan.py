@@ -18,6 +18,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.mlab as mlab
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from akimafit import *
 from bw_lib import *
 from bw_lib_pw import *
@@ -51,6 +52,31 @@ def parse_file(plik):
 	psk= float(dane[8].split('=')[1])
 	psrv = float(dane[9].split('=')[1])
 	name = dane[10].split('=')[1]
+	try:
+		if '#' not in dane[11]:
+			ptv = dane[11]
+		else:
+			ptv = ''
+		#pliktv = ptv.split('[')[0]
+	except:
+		ptv=''
+	try:	
+		if '#' not in dane[12]:
+			ptk = dane[12]
+		else:
+			ptk = ''
+		#pliktk = ptk.split('[')[0]
+	except:
+		ptk=''
+	try:
+		if '#' not in dane[13]:
+			ptrv =dane[13]
+		else:
+			ptrv = ''
+	except:
+		ptrv=''	
+		
+	#print('pliktv',pliktv)
 
 	plikv = pv.split('[')[0]
 	tv = int(pv.split('[')[1].split(']')[0].split(',')[0])
@@ -58,6 +84,10 @@ def parse_file(plik):
 	ev =  int(pv.split('[')[1].split(']')[0].split(',')[2])	
 	kv =  float(pv.split()[1])
 	nv = float(pv.split()[2])
+	try:
+		vs = float(pv.split()[3])
+	except:
+		vs = 0.
 
 	plikk = pk.split('[')[0]
 	tk = int(pk.split('[')[1].split(']')[0].split(',')[0])
@@ -65,6 +95,10 @@ def parse_file(plik):
 	ek =  int(pk.split('[')[1].split(']')[0].split(',')[2])	
 	kk =  float(pk.split()[1])
 	nk = float(pk.split()[2])
+	try:
+		ks = float(pk.split()[3])
+	except:
+		ks = 0.
 
 	plikrv = prv.split('[')[0]
 	trv = int(prv.split('[')[1].split(']')[0].split(',')[0])
@@ -73,14 +107,14 @@ def parse_file(plik):
 	krv =  float(prv.split()[1])
 	nrv = float(prv.split()[2])
 
-	return [plikv,tv,mv,ev,kv,nv],[plikk,tk,mk,ek,kk,nk],[plikrv,trv,mrv,erv,krv,nrv],period,ebv,ebverr,plx,plxerr,psk,psrv,name
+	return [plikv,tv,mv,ev,kv,nv,vs],[plikk,tk,mk,ek,kk,nk,ks],[plikrv,trv,mrv,erv,krv,nrv],period,ebv,ebverr,plx,plxerr,psk,psrv,name,ptv,ptk,ptrv
 
 def readfile(plik):
 	d = os.popen('cat ' + plik).read()
 	if '\n' in d:
 		dane = d.split('\n')[:-1]
 	elif '\r' in d:
-		dane = d.split('\n')[:-1]
+		dane = d.split('\r')[:-1]
 	else:
 		print('Cannot parse an input file\n')
 		sys.exit()
@@ -535,11 +569,11 @@ class display(QtWidgets.QWidget):
 
 			self.signals = []
 
-			f1,f2,f3,period,ebv,ebverr,plx,plxerr,psk,psrv,name = parse_file(select_file[0])
+			f1,f2,f3,period,ebv,ebverr,plx,plxerr,psk,psrv,name,pliktv,pliktk,pliktrv = parse_file(select_file[0])
 
-			self.signals.append(signal(f1[0],f1[1],f1[2],f1[3],period=period,k=f1[4],n=f1[5],name='',sc=None,hjd0=None,flux=True,ph=True))
-			self.signals.append(signal(f2[0],f2[1],f2[2],f2[3],period=period,k=f2[4],n=f2[5],name='',sc=None,hjd0=self.signals[0].hjd0,flux=True,ph=True))
-			self.signals.append(signal(f3[0],f3[1],f3[2],f3[3],period=period,k=f3[4],n=f3[5],name='',sc=None,hjd0=self.signals[0].hjd0,flux=False,ph=True,tomean=True))
+			self.signals.append(signal(f1[0],f1[1],f1[2],f1[3],period=period,k=f1[4],n=f1[5],shift=f1[6],name='',sc=None,hjd0=None,flux=True,ph=True,template_file=pliktv))
+			self.signals.append(signal(f2[0],f2[1],f2[2],f2[3],period=period,k=f2[4],n=f2[5],shift=f2[6],name='',sc=None,hjd0=self.signals[0].hjd0,flux=True,ph=True,template_file=pliktk))
+			self.signals.append(signal(f3[0],f3[1],f3[2],f3[3],period=period,k=f3[4],n=f3[5],name='',sc=None,hjd0=self.signals[0].hjd0,flux=False,ph=True,tomean=True,template_file=pliktrv))
 			self.v_k_field.setText(str(f1[4]))
 			self.v_n_field.setText(str(f1[5]))
 			self.k_k_field.setText(str(f2[4]))
@@ -1206,7 +1240,7 @@ class display(QtWidgets.QWidget):
 
 				self.syst.ax.set_title('$\sigma _R$='+str("{:.3f}".format(np.abs(ar*float(self.syst.limdown_field.text()))/695700.))+'$R_{\odot}$',fontsize=18)'''
 
-			self.mcopt.ax.plot(p0times,self.mcopt_results.sigma,'o',color='blue')
+			self.mcopt.ax.plot(periods,self.mcopt_results.sigma,'o',color='blue')
 			self.mcopt.ax.set_xlabel(xlabel,fontsize=16)
 			self.mcopt.ax.set_ylabel('$\sigma$',fontsize=16)
 			#if float(self.syst.limup_field.text()) != 0 or float(self.syst.limdown_field.text()) != 0:
@@ -1711,21 +1745,13 @@ class display(QtWidgets.QWidget):
 		self.e.file_field.setText(name[0])
 
 	def b_export_clicked(self):
-		maxval = len(self.signals)
-		increment = 100./maxval
-		completed = 0.
-		self.e.progress.setValue(completed)
+		
 		plik=open(self.e.file_field.text(),'w')
-		for i,t in enumerate(self.signals):
-			plik.write(self.signals[i].plik+'['+str(self.signals[i].tcol)+','+str(self.signals[i].mcol)+','+str(self.signals[i].ercol)+'] '+str(self.signals[i].k)+' '+str(self.signals[i].n)+'\n')
+		
+		for i,pt in enumerate(self.bw.phase):
+			plik.write(str(pt)+'\t'+str((180.*3600000./np.pi)*self.bw.fi[i])+'\t'+str((180.*3600000./np.pi)*np.multiply(self.bw.dr[i],2.*self.bw.plx/self.bw.kmkpc))+'\n')
 			
-			
-			for j,pt in enumerate(self.signals[i].x):
-				time = self.signals[i].hjd0+pt*self.signals[i].period
-				plik.write(str(time)+'\t'+str(self.signals[i].y[j])+'\n')
-
-			completed = completed + increment
-			self.e.progress.setValue(completed)
+		plik.close()
 		
 		
 
@@ -1742,7 +1768,6 @@ class display(QtWidgets.QWidget):
 	#----------------PLOT--------------------
 
 	def onkey(self,event):
-		i = self.currband
 		#print event.key,event.xdata,event.ydata
 
 		x=event.xdata
@@ -1751,8 +1776,8 @@ class display(QtWidgets.QWidget):
 		dst_prev = 1000000.
 			
 		whichpt = -1
-		for j,iks in enumerate(self.signals[i].periods):
-			igrek = self.signals[i].mags[j]
+		for j,iks in enumerate(self.balwan.v_kphase):
+			igrek = self.balwan.fi[j]
 			dst_curr = (float(x)-float(iks))**2.+(float(y)-float(igrek))**2.
 			if (dst_curr<dst_prev):
 				dst_prev = dst_curr
@@ -1760,9 +1785,10 @@ class display(QtWidgets.QWidget):
 				whichpt_isdel = False
 				whichpt_isrej = False
 
-		if self.pltdel_button.isChecked():
-			for j,iks in enumerate(self.signals[i].del_periods):
-				igrek = self.signals[i].del_mags[j]
+		#if self.pltdel_button.isChecked():
+		if True:
+			for j,iks in enumerate(self.signals[i].del_phase):
+				igrek = self.signals[i].del_mag[j]
 				dst_curr = (float(x)-float(iks))**2.+(float(y)-float(igrek))**2.
 				if (dst_curr<dst_prev):
 					dst_prev = dst_curr
@@ -1771,8 +1797,8 @@ class display(QtWidgets.QWidget):
 					whichpt_isrej = False
 
 
-			for j,iks in enumerate(self.signals[i].rej_periods):
-				igrek = self.signals[i].rej_mags[j]
+			for j,iks in enumerate(self.signals[i].rej_phase):
+				igrek = self.signals[i].rej_mag[j]
 				dst_curr = (float(x)-float(iks))**2.+(float(y)-float(igrek))**2.
 				if (dst_curr<dst_prev):
 					dst_prev = dst_curr
@@ -1783,13 +1809,13 @@ class display(QtWidgets.QWidget):
 		if event.key == 'd':
 			if not whichpt_isdel:
 				if not whichpt_isrej:
-					self.signals[i].rmpt(whichpt)
+					self.signals[2].rmpt(whichpt)
 
 		elif event.key == 'a':
 			if whichpt_isdel:
-				self.signals[i].addpt(whichpt)
+				self.signals[2].addpt(whichpt)
 			elif whichpt_isrej:
-				self.signals[i].addrejpt(whichpt)
+				self.signals[2].addrejpt(whichpt)
 
 		elif event.key == 'escape':
 			text = '-----Select data point-----\n-----with doubleclick-----'
@@ -1809,9 +1835,7 @@ class display(QtWidgets.QWidget):
 			x=event.xdata
 			y=event.ydata
 			print(event.inaxes)
-			
-			#ra,dec = image2wcs(self.image_name,[x],[y])
-			
+						
 			dst_prev = 1000000.
 			
 			self.whichpt = -1
@@ -1873,44 +1897,50 @@ class display(QtWidgets.QWidget):
 		self.f_v.set_ylabel('$V$ $[mag]$',fontsize=14)
 		self.f_v.set_xlabel(phasename,fontsize=14)
 		self.f_v.set_xlim(-0.1,1.1)
+		self.f_v.set_title('$a$')
 
 		self.f_k = self.figure.add_subplot(gs[1,0],sharex=self.f_v)
 		self.f_k.set_ylabel('$K$ $[mag]$',fontsize=14)
 		self.f_k.set_xlabel(phasename,fontsize=14)
 		self.f_k.set_xlim(-0.1,1.1)
+		self.f_k.set_title('$b$')
 
 		self.f_vk = self.figure.add_subplot(gs[2,0],sharex=self.f_v)
 		self.f_vk.set_ylabel('$(V-K)_0$ $[mag]$',fontsize=14)
 		self.f_vk.set_xlabel(phasename,fontsize=14)
 		self.f_vk.set_xlim(-0.1,1.1)
+		self.f_vk.set_title('$c$')
 
 		self.f_rv = self.figure.add_subplot(gs[0,1])
 		self.f_rv.set_ylabel('$V_r-V_{\gamma}$ $[km/s]$',fontsize=14)
 		self.f_rv.set_xlabel(phasename,fontsize=14)	
 		self.f_rv.set_xlim(-0.1,1.1)
+		self.f_rv.set_title('$d$')
 
 		self.f_dr = self.figure.add_subplot(gs[1,1],sharex=self.f_rv)
-		self.f_dr.set_ylabel('$\Delta R\'$ $[km]$',fontsize=14)
+		self.f_dr.set_ylabel('$\Delta R\'$ $[10^6 km]$',fontsize=14)
 		self.f_dr.set_xlabel(phasename,fontsize=14)
 		self.f_dr.set_xlim(-0.1,1.1)
+		self.f_dr.set_title('$e$')
 
 		self.f_fi = self.figure.add_subplot(gs[2,1],sharex=self.f_rv)
 		self.f_fi.set_ylabel('$\Theta$ $[mas]$',fontsize=14)
 		self.f_fi.set_xlabel(phasename,fontsize=14)
 		self.f_fi.set_xlim(-0.1,1.1)
+		self.f_fi.set_title('$f$')
 
 		self.f_bw = self.figure.add_subplot(gs[:,2:])
-		self.f_bw.set_title('$BW$',fontsize=14)
+		self.f_bw.set_title('$g$',fontsize=14)
 		self.f_bw.set_ylabel('$\Theta$ $[mas]$',fontsize=14)
 		self.f_bw.set_xlabel('$2x \omega x \Delta R \' / 1AU$ $[mas]$',fontsize=14)
 		
-		self.f_rv.tick_params(bottom=True,top=True,left=True,right=True,labelsize=12,direction='in')
-		self.f_v.tick_params(bottom=True,top=True,left=True,right=True,labelsize=12,direction='in')
-		self.f_k.tick_params(bottom=True,top=True,left=True,right=True,labelsize=12,direction='in')
-		self.f_dr.tick_params(bottom=True,top=True,left=True,right=True,labelsize=12,direction='in')
-		self.f_vk.tick_params(bottom=True,top=True,left=True,right=True,labelsize=12,direction='in')
-		self.f_fi.tick_params(bottom=True,top=True,left=True,right=True,labelsize=12,direction='in')
-		self.f_bw.tick_params(bottom=True,top=True,left=True,right=True,labelsize=12,direction='in')
+		self.f_rv.tick_params(bottom=True,top=False,left=True,right=False,labelsize=12,direction='in')
+		self.f_v.tick_params(bottom=True,top=False,left=True,right=False,labelsize=12,direction='in')
+		self.f_k.tick_params(bottom=True,top=False,left=True,right=False,labelsize=12,direction='in')
+		self.f_dr.tick_params(bottom=True,top=False,left=True,right=False,labelsize=12,direction='in')
+		self.f_vk.tick_params(bottom=True,top=False,left=True,right=False,labelsize=12,direction='in')
+		self.f_fi.tick_params(bottom=True,top=False,left=True,right=False,labelsize=12,direction='in')
+		self.f_bw.tick_params(bottom=True,top=False,left=True,right=False,labelsize=12,direction='in')
 		self.canvas.setFocusPolicy( QtCore.Qt.ClickFocus )
 		self.canvas.setFocus()
 		self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -1919,56 +1949,36 @@ class display(QtWidgets.QWidget):
 			
 		if self.bw != None:
 			if self.mc_button.isChecked():
-				self.f_v.plot(self.signals[0].x,self.signals[0].y,'-',color='green')
-				#self.f_v.plot(self.signals[0].x,np.add(self.signals[0].y,self.signals[0].yerr),'-',color='lightgreen')
-				#self.f_v.plot(self.signals[0].x,np.subtract(self.signals[0].y,self.signals[0].yerr),'-',color='lightgreen')
-				self.f_k.plot(self.signals[1].x,self.signals[1].y,'-',color='green')
-				#self.f_k.plot(self.signals[1].x,np.add(self.signals[1].y,self.signals[1].yerr),'-',color='lightgreen')
-				#self.f_k.plot(self.signals[1].x,np.subtract(self.signals[1].y,self.signals[1].yerr),'-',color='lightgreen')
+				#self.f_v.plot(self.signals[0].x,self.signals[0].y,'-',color='green')
+				
 				self.f_rv.plot(self.signals[2].x,self.signals[2].y,'-',color='green')
-				#self.f_rv.plot(self.signals[2].x,np.add(self.signals[2].y,self.signals[2].yerr),'-',color='lightgreen')
-				#self.f_rv.plot(self.signals[2].x,np.subtract(self.signals[2].y,self.signals[2].yerr),'-',color='lightgreen')
+				
 				self.f_v.errorbar(self.signals[0].phase,self.signals[0].mag,yerr=self.signals[0].magerr,fmt='o',color='blue',markersize=4)
 				self.f_k.errorbar(self.signals[1].phase,self.signals[1].mag,yerr=self.signals[1].magerr,fmt='o',color='blue',markersize=4)
 				self.f_rv.errorbar(self.signals[2].phase,self.signals[2].mag,yerr=self.signals[2].magerr,fmt='o',color='blue',markersize=4)
 
-				self.f_v.plot(self.signals[0].x,self.signals[0].y,'-',color='black')
-				self.f_k.plot(self.signals[1].x,self.signals[1].y,'-',color='black')
-				self.f_rv.plot(self.signals[2].x,self.signals[2].y,'-',color='black')
-				if len(self.bw.vk_err) > 0:
-					self.f_vk.errorbar(self.bw.k.phase,self.bw.vk,yerr=self.bw.vk_err,fmt='o',color='blue',markersize=4)	
-					self.f_dr.errorbar(self.bw.phase,self.bw.dr,yerr=self.bw.dr_err,fmt='o',color='blue',markersize=4)
-					self.f_fi.errorbar(self.bw.phase,(180.*3600000./np.pi)*self.bw.fi,yerr=(180.*3600000./np.pi)*self.bw.fi_err,fmt='o',color='blue',markersize=4)
-					self.f_dr.errorbar(self.bw.phase_del,self.bw.dr_del+self.bw.mean_rad,yerr=self.bw.dr_err_del,fmt='o',color='red',markersize=4)
-					self.f_fi.errorbar(self.bw.phase_del,(180.*3600000./np.pi)*self.bw.fi_del,yerr=(180.*3600000./np.pi)*self.bw.fi_err_del,fmt='o',color='red',markersize=4)
+				if len(self.signals[0].template_file) > 0:
+					phases = np.arange(0,1,0.01)
+					self.f_v.plot(phases,self.signals[0].f_shift(phases,self.signals[0].templ_mag_shift,self.signals[0].templ_phase_shift,self.signals[0].templ_ampl),'--',color='green')
 				else:
-					self.f_vk.plot(self.bw.k.phase,self.bw.vk,'o',color='blue',markersize=4)
-					self.f_dr.plot(self.bw.phase,self.bw.dr,'o',color='blue',markersize=4)
-					self.f_fi.plot(self.bw.phase,(180.*3600000./np.pi)*self.bw.fi,'o',color='blue',markersize=4)
-					self.f_dr.plot(self.bw.phase_del,self.bw.dr_del,'o',color='red',markersize=4)
-					self.f_fi.plot(self.bw.phase_del,(180.*3600000./np.pi)*self.bw.fi_del,'o',color='red',markersize=4)
+					self.f_v.plot(self.signals[0].x,self.signals[0].y,'-',color='black')
+				self.f_rv.plot(self.signals[2].x,self.signals[2].y,'-',color='black')
+				'''if len(self.bw.vk_err) > 0:
+					self.f_vk.errorbar(self.bw.k.phase,self.bw.vk,yerr=self.bw.vk_err,fmt='o',color='blue',markersize=4)	
+					self.f_fi.errorbar(self.bw.phase,(180.*3600000./np.pi)*self.bw.fi,yerr=(180.*3600000./np.pi)*self.bw.fi_err,fmt='o',color='blue',markersize=4)
+					self.f_fi.errorbar(self.bw.phase_del,(180.*3600000./np.pi)*self.bw.fi_del,yerr=(180.*3600000./np.pi)*self.bw.fi_err_del,fmt='o',color='red',markersize=4)
+				else:'''
+				self.f_vk.plot(self.bw.k.phase,self.bw.vk,'o',color='blue',markersize=4)
+				self.f_fi.plot(self.bw.phase,(180.*3600000./np.pi)*self.bw.fi,'o',color='blue',markersize=4)
+				self.f_fi.plot(self.bw.phase_del,(180.*3600000./np.pi)*self.bw.fi_del,'o',color='red',markersize=4)
 
-				self.f_vk.plot(self.bw.phase_plot,self.bw.vk_plot,'-',color='black')
-				self.f_dr.plot(self.bw.phase_plot,self.bw.dr_plot,'-',color='black')
-				ind_min = np.argmin(self.bw.dr_plot)
-				val_min = np.min(self.bw.dr_plot)
-				ind_max = np.argmax(self.bw.dr_plot)
-				val_max = np.max(self.bw.dr_plot)
-				self.f_dr.vlines(self.bw.phase_plot[ind_min],val_min,val_max,linestyles='dotted',color='red')
-				self.f_dr.vlines(self.bw.phase_plot[ind_max],val_min,val_max,linestyles='dotted',color='red')
-				#self.f_dr.hlines(self.bw.mean_rad,0,1,linestyles='dashed',color='green')
-
-				self.f_fi.plot(self.bw.phase_plot,(180.*3600000./np.pi)*self.bw.fi_plot,'-',color='black')
+				self.f_dr.plot(self.bw.phase_plot,self.bw.dr_plot/1000000.,'-',color='black')
+				
 				self.f_fi.plot(self.bw.phase_plot,(180.*3600000./np.pi)*self.bw.fi_plot2,'--',color='green')
-				val_min = np.min(self.bw.fi_plot)
-				val_max = np.max(self.bw.fi_plot)
-				self.f_fi.vlines(self.bw.phase_plot[ind_min],(180.*3600000./np.pi)*val_min,(180.*3600000./np.pi)*val_max,linestyles='dotted',color='red')
-				self.f_fi.vlines(self.bw.phase_plot[ind_max],(180.*3600000./np.pi)*val_min,(180.*3600000./np.pi)*val_max,linestyles='dotted',color='red')
-				#print self.bw.dr_err
-				if len(self.bw.fi_err) > 0: #uncomment this to plot errorbars
-					self.f_bw.errorbar((180.*3600000./np.pi)*np.multiply(self.bw.dr,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.array(self.bw.fi),xerr=(180.*3600000./np.pi)*np.multiply(self.bw.dr_err,2.*self.bw.plx/self.bw.kmkpc),yerr=(180.*3600000./np.pi)*np.array(self.bw.fi_err),fmt='o',color='blue')
-				#	self.f_bw.errorbar((180.*3600000./np.pi)*np.multiply(self.bw.dr_del,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.array(self.bw.fi_del),xerr=(180.*3600000./np.pi)*np.multiply(self.bw.dr_del,2.*self.bw.plx/self.bw.kmkpc),yerr=(180.*3600000./np.pi)*np.array(self.bw.fi_err_del),fmt='o',color='red')
-				#else:
+				
+				#if len(self.bw.fi_err) > 0: #uncomment this to plot errorbars
+				#	self.f_bw.errorbar((180.*3600000./np.pi)*np.multiply(self.bw.dr,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.array(self.bw.fi),xerr=(180.*3600000./np.pi)*np.multiply(self.bw.dr_err,2.*self.bw.plx/self.bw.kmkpc),yerr=(180.*3600000./np.pi)*np.array(self.bw.fi_err),fmt='o',color='blue')
+				
 				self.f_bw.plot((180.*3600000./np.pi)*np.multiply(self.bw.dr,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.array(self.bw.fi),'o',color='blue')
 				self.f_bw.plot((180.*3600000./np.pi)*np.multiply(self.bw.dr_del,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.array(self.bw.fi_del),'o',color='red')
 
@@ -1988,45 +1998,37 @@ class display(QtWidgets.QWidget):
 				self.f_v.errorbar(self.signals[0].phase,self.signals[0].mag,yerr=self.signals[0].magerr,fmt='o',color='blue',markersize=4)
 				self.f_k.errorbar(self.signals[1].phase,self.signals[1].mag,yerr=self.signals[1].magerr,fmt='o',color='blue',markersize=4)
 				self.f_rv.errorbar(self.signals[2].phase,self.signals[2].mag,yerr=self.signals[2].magerr,fmt='o',color='blue',markersize=4)
-
+				#try:
+				if len(self.signals[0].template_file) > 0:
+					phases = np.arange(0,1,0.01)
+					self.f_v.plot(phases,self.signals[0].f_shift(phases,self.signals[0].templ_mag_shift,self.signals[0].templ_phase_shift,self.signals[0].templ_ampl),'--',color='green')
+				else:
+					self.f_v.plot(self.signals[0].x,self.signals[0].y,'-',color='black')
+					#self.f_v.plot(phases,self.signals[0].f_shift(phases,self.signals[0].templ_mag_shift,self.signals[0].templ_phase_shift),'--',color='green')
+				#except:
+				#	pass
 				
 				self.f_v.errorbar(self.signals[0].phase,self.signals[0].mag,yerr=self.signals[0].magerr,fmt='o',color='blue',markersize=4)
 				self.f_k.errorbar(self.signals[1].phase,self.signals[1].mag,yerr=self.signals[1].magerr,fmt='o',color='blue',markersize=4)
 				self.f_rv.errorbar(self.signals[2].phase,self.signals[2].mag,yerr=self.signals[2].magerr,fmt='o',color='blue',markersize=4)
-				self.f_v.plot(self.signals[0].x,self.signals[0].y,'-',color='black')
-				self.f_k.plot(self.signals[1].x,self.signals[1].y,'-',color='black')
+				
 				self.f_rv.plot(self.signals[2].x,self.signals[2].y,'-',color='black')
 
-				self.f_v.plot(self.signals[0].x,self.signals[0].y,'-',color='black')
-				self.f_k.plot(self.signals[1].x,self.signals[1].y,'-',color='black')
-				self.f_rv.plot(self.signals[2].x,self.signals[2].y,'-',color='black')
 
 				self.f_vk.plot(self.bw.k.phase,self.bw.vk,'o',color='blue',markersize=4)	
-				self.f_vk.plot(self.bw.phase_plot,self.bw.vk_plot,'-',color='black')
-				self.f_dr.plot(self.bw.phase,self.bw.dr,'o',color='blue',markersize=4)
-				self.f_dr.plot(self.bw.phase_del,self.bw.dr_del,'o',color='red',markersize=4)
-				self.f_dr.plot(self.bw.phase_plot,self.bw.dr_plot,'-',color='black')
-				ind_min = np.argmin(self.bw.dr_plot)
-				val_min = np.min(self.bw.dr_plot)
-				ind_max = np.argmax(self.bw.dr_plot)
-				val_max = np.max(self.bw.dr_plot)
-				self.f_dr.vlines(self.bw.phase_plot[ind_min],val_min,val_max,linestyles='dotted',color='red')
-				self.f_dr.vlines(self.bw.phase_plot[ind_max],val_min,val_max,linestyles='dotted',color='red')
-				#self.f_dr.hlines(0,0,1,linestyles='dashed',color='green')
+				
+				self.f_dr.plot(self.bw.phase_plot,self.bw.dr_plot/1000000.,'-',color='black')
+				
 				self.f_fi.plot(self.bw.phase,(180.*3600000./np.pi)*self.bw.fi,'o',color='blue',markersize=4)
 				self.f_fi.plot(self.bw.phase_del,(180.*3600000./np.pi)*self.bw.fi_del,'o',color='red',markersize=4)
-				self.f_fi.plot(self.bw.phase_plot,(180.*3600000./np.pi)*self.bw.fi_plot,'-',color='black')
 				self.f_fi.plot(self.bw.phase_plot,(180.*3600000./np.pi)*self.bw.fi_plot2,'--',color='green')
-				val_min = np.min(self.bw.fi_plot)
-				val_max = np.max(self.bw.fi_plot)
-				self.f_fi.vlines(self.bw.phase_plot[ind_min],(180.*3600000./np.pi)*val_min,(180.*3600000./np.pi)*val_max,linestyles='dotted',color='red')
-				self.f_fi.vlines(self.bw.phase_plot[ind_max],(180.*3600000./np.pi)*val_min,(180.*3600000./np.pi)*val_max,linestyles='dotted',color='red')
+				
 				self.f_bw.plot((180.*3600000./np.pi)*np.multiply(self.bw.dr,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.array(self.bw.fi),'o',color='blue')
 				self.f_bw.plot((180.*3600000./np.pi)*np.multiply(self.bw.dr_del,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.array(self.bw.fi_del),'o',color='red')	
 				self.f_bw.plot((180.*3600000./np.pi)*np.multiply(self.bw.dr,2.*self.bw.plx/self.bw.kmkpc),(180.*3600000./np.pi)*np.add(np.multiply(self.bw.p,np.multiply(self.bw.dr,2.*self.bw.plx/self.bw.kmkpc)),self.bw.fi0),'-')
 				if self.b_plx.isChecked():
 					self.f_bw.text((180.*3600000./np.pi)*np.mean(np.multiply(self.bw.dr,2.*self.bw.plx/self.bw.kmkpc)),(180.*3600000./np.pi)*np.min(self.bw.fi),'%s\n p-factor= %s $\pm$ %s\n R= %s $\pm$ %s $R_{\odot}$' % (self.bw.name,str("{:.2f}".format(self.bw.p)), str("{:.2f}".format(self.bw.sigmap)),str("{:.2f}".format(self.bw.fi0*0.5*(self.bw.kmkpc/self.bw.plx)/695700)),str("{:.2f}".format(self.bw.sigmafi0*0.5*(self.bw.kmkpc/self.bw.plx)/695700))),fontstyle='italic',fontsize=16)
-				#else:
+				
 
 		elif len(self.signals) == 3:
 			self.f_v.errorbar(self.signals[0].phase,self.signals[0].mag,yerr=self.signals[0].magerr,fmt='o',color='blue',markersize=4)
@@ -2043,6 +2045,8 @@ class display(QtWidgets.QWidget):
 		self.f_v.invert_yaxis()
 		self.f_k.invert_yaxis()
 		self.f_vk.invert_yaxis()
+		self.f_dr.ticklabel_format(axis='y',style='sci')
+		#self.f_dr.yaxis.set_major_formatter(ticker.LogFormatterSciNotation(base=10))
 		self.canvas.draw()	
 
 '''	def plot(self,i):
