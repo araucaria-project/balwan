@@ -334,14 +334,14 @@ class display(QtWidgets.QWidget):
 		self.scroll.setWidget(self.fit_results)
 
 		#text field with point data
-		self.pt_info = QtWidgets.QLabel('-----Select data point-----\n-----with doubleclick-----',self)
-		self.pt_info.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-		self.pt_info.setStyleSheet("background-color: white; border: 1px solid black;")
-		self.scroll2 = QtWidgets.QScrollArea()
+		#self.pt_info = QtWidgets.QLabel('-----Select data point-----\n-----with doubleclick-----',self)
+		#self.pt_info.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+		#self.pt_info.setStyleSheet("background-color: white; border: 1px solid black;")
+		'''self.scroll2 = QtWidgets.QScrollArea()
 		self.scroll2.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 		self.scroll2.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 		self.scroll2.setWidgetResizable(True)
-		self.scroll2.setWidget(self.pt_info)
+		self.scroll2.setWidget(self.pt_info)'''
 		
 		self.mc_label = QtWidgets.QLabel('Monte Carlo simulation:',self)
 		self.mc_field = QtWidgets.QLineEdit()
@@ -378,7 +378,7 @@ class display(QtWidgets.QWidget):
 		
 		#---------------LOGO----------------------------------------------
 		
-		self.logo = QtWidgets.QLabel('',self)
+		'''self.logo = QtWidgets.QLabel('',self)
 		pxmap = QtGui.QPixmap('balwan.png')
 		pxmap2 = pxmap.scaledToWidth(56)
 		self.logo.setPixmap(pxmap2)
@@ -387,7 +387,7 @@ class display(QtWidgets.QWidget):
 		self.logo2 = QtWidgets.QLabel('',self)
 		pxmap = QtGui.QPixmap('ara_logo.png')
 		pxmap3 = pxmap.scaledToWidth(128)
-		self.logo2.setPixmap(pxmap3)
+		self.logo2.setPixmap(pxmap3)'''
 
 		
 		
@@ -400,8 +400,8 @@ class display(QtWidgets.QWidget):
 		vbox_right=QtWidgets.QVBoxLayout()#right
 	
 		hbox_logos=QtWidgets.QHBoxLayout()
-		hbox_logos.addWidget(self.logo,1)
-		hbox_logos.addWidget(self.logo2,2)
+		#hbox_logos.addWidget(self.logo,1)
+		#hbox_logos.addWidget(self.logo2,2)
 
 		vbox_left.addLayout(hbox_logos)
 		
@@ -516,7 +516,7 @@ class display(QtWidgets.QWidget):
 		vbox_left.addLayout(hbox_buttons2,1)
 		vbox_left.addLayout(hbox_buttons3,1)
 		vbox_left.addWidget(self.scroll,3)
-		vbox_left.addWidget(self.scroll2,3)
+		#vbox_left.addWidget(self.scroll2,3)
 
 		
 
