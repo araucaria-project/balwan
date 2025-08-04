@@ -531,7 +531,7 @@ class display(QtWidgets.QWidget):
 		#hbox_main.addLayout(vbox_center,3)
 		hbox_main.addLayout(vbox_right,5)
 		self.setLayout(hbox_main)
-		self.setGeometry(500,300,1400,800)
+		self.setGeometry(10,10,1000,600)
 		self.setWindowTitle("Baade+Wesselink Analysis (Ba+WAn)")
 		self.setWindowIcon(QtGui.QIcon('balwan.png'))
 		self.show()
