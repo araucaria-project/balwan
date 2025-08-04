@@ -13,7 +13,7 @@ def bisect_my(x,xerr,y,yerr):
 	return (a1+1./a2)/2., b1,sigmaa1,sigmab1,sigma1
 
 class balwan():
-	def __init__(self,name,v,k,rv,ebv,ebverr=0,R_V=3.136,R_K=0.363,plx=None,plxerr=None,p=None,perr=None,irsb=[3.953,-0.1336],dirsb=0,mc=0,p0=0.,p1=1.,method = 0):
+	def __init__(self,name,v,k,rv,ebv,ebverr=0,R_V=3.136,R_K=0.363,plx=None,plxerr=None,irsb=[3.953,-0.1336],dirsb=0,mc=0,p0=0.,p1=1.,method = 1):
 		self.mean_rad = 0.
 		self.name = name
 		self.kmkpc=206264.81*149597870.7*1000.
@@ -24,8 +24,6 @@ class balwan():
 		self.ebverr = ebverr
 		self.plx = plx
 		self.plxerr = plxerr
-		self.p = p
-		self.perr = perr
 		self.irsbterms=irsb
 		self.dirsb = dirsb 
 		self.method = method
@@ -65,8 +63,6 @@ class balwan():
 		self.dr_plot = []
 		self.fi_plot = []
 
-		self.p=p
-		self.perr=perr
 		self.runbw(mc=mc)
 
 	def integral(self,akima,p0,p1):
@@ -157,18 +153,14 @@ class balwan():
 		#self.fi = np.power(10.,np.multiply(-2.,np.add(np.multiply(0.1,np.subtract(self.v_kphase,self.R_V*ebv)),np.subtract(fv,4.2207))))
 		#fv2 = np.add(np.multiply(self.irsba,np.subtract(self.vk_plot,(self.R_V-self.R_K)*self.ebv)),self.irsbb)
 		#self.fi_plot = np.multiply(np.power(10.,np.multiply(-2.,np.add(np.multiply(0.1,np.subtract(self.v_plot,self.R_V*self.ebv)),np.subtract(fv2,4.2207)))),np.pi/(180.*3600.*1000.))
-
-		#akima = Akimaspline(self.k.phase,fi,0.1,0.1)
-		#self.fi_akima = akima
-		#for i,pt in enumerate(self.phase_plot):
-		#	self.fi_plot.append(akima.__call__(pt))
+		akima = Akimaspline(self.k.phase,fi,0.1,0.1)
+		self.fi_akima = akima
+		for i,pt in enumerate(self.phase_plot):
+			self.fi_plot.append(akima.__call__(pt))
 			
-		
-			#fv=self.irsb(self.vk_plot[i],ebv)
-			#self.fi_plot.append(np.multiply(np.power(10.,np.multiply(-2.,np.add(np.multiply(0.1,np.subtract(self.v.y[i],self.R_V*ebv)),np.subtract(fv,4.2207)))),np.pi/(180.*3600.*1000.)))
 		self.fi = np.array(self.fi)
 		self.fi_del = np.array(self.fi_del)
-		#self.fi_plot=np.array(self.fi_plot)
+		self.fi_plot=np.array(self.fi_plot)
 
 	
 		
@@ -235,7 +227,7 @@ class balwan():
 		return pf_final,fi0_final,pf_final_err,pf_final_err,chi2_min
 
 
-	def bawan(self,plx=None,p=None,fi = [],dr = [],dr_err=[],fi_err=[]):
+	def bawan(self,plx=None,fi = [],dr = [],dr_err=[],fi_err=[]):
 		
 		#print kmkpc
 		if plx != None:
@@ -259,7 +251,7 @@ class balwan():
 			#print plx
 			#print 'p=',0.5*(p*self.kmkpc/plx),'r0=',fi0*0.5*(self.kmkpc/plx)
 			#print 'p=',p,'r0=',fi0*0.5*(self.kmkpc/plx)
-		elif p != None:#p is the distance here
+		'''elif p != None:#p is the distance here
 			if self.method == 0:
 				plx,fi0,sigmaplx,sigmafi0,sigma = self.fit_dr2fi_dst()
 			elif self.method == 1:
@@ -268,14 +260,16 @@ class balwan():
 				plx,fi0,sigmaplx,sigmafi0,sigma=lin_bisect(np.multiply(dr,2.*p/self.kmkpc),fi)
 
 			p = plx
-			sigmap = sigmaplx
+			sigmap = sigmaplx'''
+		print(p)
 
 
 		return p,fi0,sigmap,sigmafi0,sigma
 
 	def runbw(self,mc=0):
-		p = param('pfactor')
-		fi = param('fi')
+		p = param('$p-factor$')
+		fi = param('$\Theta$')
+		r = param('$R[R_{\odot}]$')
 		vk_err_param = []
 		fi_err_param = []
 		dr_err_param = []
@@ -356,10 +350,13 @@ class balwan():
 					fi_err_param_del[i].values.append(self.fi_del[i])
 					dr_err_param_del[i].values.append(self.dr_del[i])
 
-				self.p,self.fi0,self.sigmap,self.sigmafi0,self.sigma=self.bawan(plx_mc,self.p,self.fi,self.dr)
-				p.values.append(self.p)
-				fi.values.append(self.fi0)
-				
+				self.p,self.fi0,self.sigmap,self.sigmafi0,self.sigma=self.bawan(plx_mc,self.fi,self.dr)
+				if self.p < 2.:
+					p.values.append(self.p)
+					fi.values.append(self.fi0)
+					r.values.append(self.fi0*0.5*(self.kmkpc/self.plx)/695700)
+					out = open('mc_out.dat','a')
+					out.write(str(self.p)+'\t'+str(self.fi0*0.5*(self.kmkpc/self.plx))+'\n')
 
 
 			for i,pt in enumerate(self.k.phase):
@@ -403,13 +400,15 @@ class balwan():
 
 			p.srednia()
 			fi.srednia()
+			r.srednia()
 			p.hist(50)
+			
 			#fi.hist(50)
 			self.p = p.mean
 			self.sigmap = p.std
 			self.fi0 = fi.mean
 			self.sigmafi0 = fi.std
-
+			
 			#p.hist(15)
 			#print('Not implemented yet')
 
@@ -421,18 +420,13 @@ class balwan():
 			self.intrv()
 			self.calc_vk()
 			self.calc_fi(ebv=self.ebv)
-			print(self.p)
-			p,self.fi0,sigmap,self.sigmafi0,self.sigma=self.bawan(self.plx,self.p,self.fi,self.dr)
-			if self.plx == None:
-				self.plx = p
-				self.sigmaplx = sigmap
-			elif self.p == None:
-				#print p
-				#print sigmap
-				self.p = float(p)
-				self.sigmap = float(sigmap)
+			
+			p,self.fi0,sigmap,self.sigmafi0,self.sigma=self.bawan(self.plx,self.fi,self.dr)
+			
+			self.p = float(p)
+			self.sigmap = float(sigmap)
 			#self.p,self.fi0
-
+		print(self.p)
 		for i,pt in enumerate(self.phase_plot):
 			self.fi_plot2.append(np.multiply(self.dr_plot[i],2.*self.plx*self.p/(self.kmkpc))+self.fi0)
 
@@ -441,9 +435,9 @@ class balwan():
 	def text(self):
 		#try:
 		if True:
-			t='object: '+self.name+'\n\nprojection factor ='+str("{:.3f}".format(self.p))+'+-'+str("{:.3f}".format(self.sigmap))+'\n'+'R0='+str(int(self.fi0*0.5*(self.kmkpc/self.plx)))+'+-'+str(int(self.sigmafi0*0.5*(self.kmkpc/self.plx)))+' km = '+str("{:.2f}".format(self.fi0*0.5*(self.kmkpc/self.plx)/695700))+'+-'+str("{:.2f}".format(self.sigmafi0*0.5*(self.kmkpc/self.plx)/695700))+'Rsun\n\nSigma='+str((180.*3600000./np.pi)*self.sigma)
+			t='object: '+self.name+'\n\nprojection factor ='+str("{:.3f}".format(self.p))+'+-'+str("{:.3f}".format(self.sigmap))+'\n'+'R0='+str(int(self.fi0*0.5*(self.kmkpc/self.plx)))+'+-'+str(int(self.sigmafi0*0.5*(self.kmkpc/self.plx)))+' km = '+str("{:.2f}".format(self.fi0*0.5*(self.kmkpc/self.plx)/695700))+'+-'+str("{:.2f}".format(self.sigmafi0*0.5*(self.kmkpc/self.plx)/695700))+'Rsun\n\nSigma='+str((180.*3600000./np.pi)*self.sigma)+'\n'+str(self.fi0*180*3600000/np.pi)
 		#except:
-		#	t='object: '+self.name+'\n\nprojection factor ='+str("{:.3f}".format(self.plx))+'+-'+str("{:.3f}".format(self.sigmaplx))+'\n'+'R0='+str(int(self.fi0*0.5*(self.kmkpc/self.plx)))+'+-'+str(int(self.sigmafi0*0.5*(self.kmkpc/self.plx)))+' km = '+str("{:.2f}".format(self.fi0*0.5*(self.kmkpc/self.plx)/695700))+'+-'+str("{:.2f}".format(self.sigmafi0*0.5*(self.kmkpc/self.plx)/695700))+'Rsun\n\nSigma='+str((180.*3600000./np.pi)*self.sigma)
+		#	t='object: '+self.name+'\n\nprojection factor ='+str("{:.3f}".format(self.p))+'+-'+str("{:.3f}".format(self.sigmap))+'\n'+'R0='+str(int(self.fi0*0.5*(self.kmkpc/self.plx)))+'+-'+str(int(self.sigmafi0*0.5*(self.kmkpc/self.plx)))+' km = '+str("{:.2f}".format(self.fi0*0.5*(self.kmkpc/self.plx)/695700))+'+-'+str("{:.2f}".format(self.sigmafi0*0.5*(self.kmkpc/self.plx)/695700))+'Rsun\n\nSigma='+str((180.*3600000./np.pi)*self.sigma)+'\n'+str(self.fi0*180*3600000/np.pi)
 
 		#print t
 		return t

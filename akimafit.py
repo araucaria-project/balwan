@@ -161,11 +161,14 @@ class signal():
 		self.template_time = time
 		self.template_mag = mag
 		self.template_phasing(self.period)
-		self.template_model = Akimaspline(self.template_phase,self.template_mag,k=0.03, n=0.03)
+		self.template_model = Akimaspline(self.template_phase,self.template_mag,k=0.04, n=0.05)
 		plt.plot(self.template_phase,self.template_mag,'.',color='black')
 		phases = np.arange(0,1,0.01)
 		plt.plot(phases,self.template_model(phases),'-',color='green')
 		plt.gca().invert_yaxis()
+		plt.gca().tick_params(bottom=True,top=True,left=True,right=True,labelsize=14,direction='in')
+		plt.xlabel('$Phase$',fontsize=16)
+		plt.ylabel('$V_{ASAS}$',fontsize=16)
 		plt.show()
 
 	
@@ -191,13 +194,27 @@ class signal():
 		if period==None:
 			period=self.period
 
-		try:
+		#try:
+		if True:
+			
 			for i,t in enumerate(self.time):
-				periodt = period[0]+period[1]*(self.time[i]-period[2])/365.25
-				self.phase.append((((self.time[i]-self.hjd0+self.ps*periodt)%periodt)/periodt))
+				direction = -1.
+				if self.time[i] < self.hjd0:
+					direction = 1.
+
+				hjd0 = self.hjd0
+				while direction*(hjd0 - self.time[i]) < 0.:
+					print(t-period[2])
+					periodt = period[0]+period[1]*(hjd0-period[2])/365.25
+					hjd0 = hjd0 + direction*periodt
+					print(hjd0)
 				
-		except:
-			self.phase = np.divide(np.mod(np.add(np.subtract(self.time,self.hjd0),self.ps*period),period),period)
+
+				periodt = period[0]+period[1]*(self.time[i]-period[2])/365.25
+				self.phase.append((((self.time[i]-hjd0+self.ps*periodt)%periodt)/periodt))
+				
+		#except:
+		#	self.phase = np.divide(np.mod(np.add(np.subtract(self.time,self.hjd0),self.ps*period),period),period)
 
 		self.phase = np.array(self.phase)
 
@@ -269,7 +286,7 @@ class signal():
 		return self.x,self.y,akima
 
 	def mean(self,akima):
-		return self.integral(akima,0,1)
+		return self.integral(akima,0,1)-self.shift
 	
 	def integral(self,akima,p0,p1):
 		integral = akima.antiderivative()

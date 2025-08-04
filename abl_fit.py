@@ -5,6 +5,8 @@ import os,sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
+import matplotlib
+matplotlib.use('TKAgg')
 
 def abl_right(x,a,b):
 	ab = np.power(10.,0.2*(a*(np.log10(x))+b))
@@ -59,9 +61,11 @@ class param():
 		c = calka(x,p)
 		#plt.vlines(self.mean,0,np.max(p*chist),color = 'orange',alpha=0.8)
 		#plt.plot(x, chist*p, 'r--', linewidth=2,alpha=0.7,color='orange')
-		plt.xlabel(self.name)
-		plt.ylabel('N')
-		y= mlab.normpdf(bins,self.mean,self.std)*chist/c
+		plt.xlabel(self.name,fontsize=16)
+		plt.ylabel('$N$',fontsize=16)
+		plt.gca().tick_params(bottom=True,top=True,left=True,right=True,labelsize=14,direction='in')
+
+		y= norm.pdf(bins,self.mean,self.std)*chist/c
 		l = plt.plot(bins,y,'r--',linewidth=2)
 		plt.show()
 		
