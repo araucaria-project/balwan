@@ -17,7 +17,7 @@ from matplotlib.patches import Arrow
 import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
 import math
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits import mplot3d
 import matplotlib.mlab as mlab
 from scipy.stats import norm
 import matplotlib.pyplot as plt
@@ -311,9 +311,9 @@ class display(QtWidgets.QWidget):
 		self.buttons_group_fit_method = QtWidgets.QButtonGroup()
 		self.method_label = QtWidgets.QLabel('Fit method',self)
 		self.b_drs = QtWidgets.QRadioButton("DR scaling")
-		self.b_drs.setChecked(True)
+		self.b_drs.setChecked(False)
 		self.b_lsq = QtWidgets.QRadioButton("Line (OLS)")
-		self.b_lsq.setChecked(False)
+		self.b_lsq.setChecked(True)
 		self.b_bis = QtWidgets.QRadioButton("Line (bisector)")
 		self.b_bis.setChecked(False)
 	
@@ -1027,12 +1027,12 @@ class display(QtWidgets.QWidget):
 		self.mcopt.b_pt0 = QtWidgets.QCheckBox("Period HJD0")
 		self.mcopt.b_pt0.setChecked(False)
 		self.mcopt.dpt01_label = QtWidgets.QLabel("range size")
-		self.mcopt.dpt01_field = QtWidgets.QLineEdit("0.0001")
+		self.mcopt.dpt01_field = QtWidgets.QLineEdit("50000")
 	
 		
 
-		self.mcopt.nop_label = QtWidgets.QLabel("Number of draws")
-		self.mcopt.nop_field = QtWidgets.QLineEdit("500")
+		self.mcopt.nop_label = QtWidgets.QLabel("Number of simulations")
+		self.mcopt.nop_field = QtWidgets.QLineEdit("1000")
 
 
 		self.mcopt.results = QtWidgets.QLabel('-----Results-----',self)
@@ -1056,20 +1056,20 @@ class display(QtWidgets.QWidget):
 		#------------------display image-----------------------------
 
 		# image
-		self.mcopt.figure= Figure(figsize=(8,6),constrained_layout=True)
+		self.mcopt.figure= Figure(figsize=(8,6))
 		self.mcopt.canvas = FigureCanvas(self.mcopt.figure)
 		self.mcopt.toolbar = NavigationToolbar(self.mcopt.canvas,self)
 
 		self.mcopt.buttons_group2 = QtWidgets.QButtonGroup()
 		self.mcopt.b_plotp = QtWidgets.QRadioButton("Plot p")
-		self.mcopt.b_plotp.setChecked(True)
-		self.mcopt.b_plotp.clicked.connect(self.btnstate_radio)
+		self.mcopt.b_plotp.setChecked(False)
+		self.mcopt.b_plotp.clicked.connect(self.btnstate_radio_mcopt)
 		self.mcopt.b_plotr = QtWidgets.QRadioButton("Plot R")
 		self.mcopt.b_plotr.setChecked(False)
-		self.mcopt.b_plotr.clicked.connect(self.btnstate_radio)
+		self.mcopt.b_plotr.clicked.connect(self.btnstate_radio_mcopt)
 		self.mcopt.b_plots = QtWidgets.QRadioButton("Plot sigma")
-		self.mcopt.b_plots.setChecked(False)
-		self.mcopt.b_plots.clicked.connect(self.btnstate_radio)
+		self.mcopt.b_plots.setChecked(True)
+		self.mcopt.b_plots.clicked.connect(self.btnstate_radio_mcopt)
 		
 		self.mcopt.buttons_group2.addButton(self.mcopt.b_plotp)
 		self.mcopt.buttons_group2.addButton(self.mcopt.b_plotr)
@@ -1138,8 +1138,7 @@ class display(QtWidgets.QWidget):
 		self.mcopt.setLayout(layout)
 		self.mcopt.exec_()
 
-	def update_mcopt_plot(self):
-		print("ble")
+	
 
 	def b_cancel_mcopt_clicked(self):
 		self.mcopt.close()
@@ -1157,6 +1156,7 @@ class display(QtWidgets.QWidget):
 		self.update_mcopt_plot()
 
 	def b_run_mcopt_clicked(self):
+		out = open('mc_opt.dat','w')
 		self.mcopt_results = syst_test()
 		if self.b_drs.isChecked():
 			method = 0
@@ -1170,45 +1170,53 @@ class display(QtWidgets.QWidget):
 		pold = self.signals[0].period
 		for i in range(int(self.mcopt.nop_field.text())):
 			
-			pnew = []
+			self.pnew = []
 			if self.mcopt.b_p.isChecked():
 			
-				pnew.append(np.random.uniform(low=pold[0]-float(self.mcopt.dp1_field.text()),high=pold[0]+float(self.mcopt.dp1_field.text())))
+				self.pnew.append(np.random.uniform(low=pold[0]-float(self.mcopt.dp1_field.text()),high=pold[0]+float(self.mcopt.dp1_field.text())))
 
 			else:
-				pnew.append(pold[0])
+				self.pnew.append(pold[0])
 
 			if self.mcopt.b_dp.isChecked():
 			
-				pnew.append(np.random.uniform(low=pold[1]-float(self.mcopt.ddp1_field.text()),high=pold[1]+float(self.mcopt.ddp1_field.text())))
+				self.pnew.append(np.random.uniform(low=pold[1]-float(self.mcopt.ddp1_field.text()),high=pold[1]+float(self.mcopt.ddp1_field.text())))
 
 			else:
-				pnew.append(pold[1])
+				self.pnew.append(pold[1])
 
 			if self.mcopt.b_pt0.isChecked():
 			
-				pnew.append(np.random.uniform(low=pold[2]-float(self.mcopt.dpt01_field.text()),high=pold[2]+float(self.mcopt.dpt01_field.text())))
+				self.pnew.append(np.random.uniform(low=pold[2]-float(self.mcopt.dpt01_field.text()),high=pold[2]+float(self.mcopt.dpt01_field.text())))
 
 			else:
-				pnew.append(pold[2])
+				self.pnew.append(pold[2])
 
 			#print(pnew)
-			self.signals[0].period = pnew
-			self.signals[1].period = pnew
-			self.signals[2].period = pnew
+			self.signals[0].period = self.pnew
+			self.signals[1].period = self.pnew
+			self.signals[2].period = self.pnew
 			self.signals[0].phasing()
 			self.signals[1].phasing()
 			self.signals[2].phasing()
 			self.signals[0].fit()
 			self.signals[1].fit()
 			self.signals[2].fit()
-			bw=balwan(self.name,self.signals[0],self.signals[1],self.signals[2],float(self.ebv_field.text()),ebverr=float(self.ebverr_field.text()),R_V=self.redd_v,R_K=self.redd_k,plx=float(self.plx_field.text()),plxerr=float(self.plxerr_field.text()),irsb=self.irsb[self.wirsb()],mc=0,p0=float(self.minph_field.text()),p1=float(self.maxph_field.text()),method=method)
 			
-			self.mcopt_results.values.append(pnew)
-			self.mcopt_results.p.append(bw.p)
-			self.mcopt_results.r0.append(bw.fi0*0.5*(bw.kmkpc/bw.plx))
-			self.mcopt_results.sigma.append(bw.sigma)
-
+			
+			try:
+				bw=balwan(self.name,self.signals[0],self.signals[1],self.signals[2],float(self.ebv_field.text()),ebverr=float(self.ebverr_field.text()),R_V=self.redd_v,R_K=self.redd_k,plx=float(self.plx_field.text()),plxerr=float(self.plxerr_field.text()),irsb=self.irsb[self.wirsb()],mc=0,p0=float(self.minph_field.text()),p1=float(self.maxph_field.text()),method=method)
+				self.mcopt_results.p.append(bw.p)
+				self.mcopt_results.r0.append(bw.fi0*0.5*(bw.kmkpc/bw.plx))
+				self.mcopt_results.sigma.append(bw.sigma)
+				self.mcopt_results.values.append(self.pnew)
+				out.write(str(self.pnew[0])+'\t'+str(self.pnew[1])+'\t'+str(self.pnew[2])+'\t'+str(bw.p)+'\t'+str(bw.fi0*0.5*(bw.kmkpc/bw.plx))+'\t'+str(bw.sigma)+'\n')
+			except:
+				continue
+			
+		minimum = np.min(self.mcopt_results.sigma)
+		ind = np.where(self.mcopt_results.sigma[:] == minimum)
+		print('Minimum sigma for dP/dt = '+str(self.mcopt_results.values[ind[0][0]][1])+' and HJD0='+str(self.mcopt_results.values[ind[0][0]][2]))
 		self.signals[0].period = pold
 		self.signals[1].period = pold
 		self.signals[2].period = pold
@@ -1218,11 +1226,38 @@ class display(QtWidgets.QWidget):
 		self.signals[0].fit()
 		self.signals[1].fit()
 		self.signals[2].fit()
-
+		out.close()
 		self.update_mcopt_plot(xlabel='$\Delta P[days]$')
 
 	def update_mcopt_plot(self,xlabel='',p=0):
+		
 		try:
+		#if True:
+			self.mcopt.figure.clf()
+			self.mcopt.ax = self.mcopt.figure.add_axes([0.1,0.1,0.8,0.8],projection='3d')
+			
+			periods = []
+			period_changes = []
+			p0times = []
+			sigmas = []
+			for i,pt in enumerate(self.mcopt_results.values):
+				periods.append(pt[0])
+				period_changes.append(pt[1])
+				p0times.append(pt[2])
+				sigmas.append(self.mcopt_results.sigma[i])
+
+			self.mcopt.ax.scatter(period_changes, p0times, sigmas, color='blue')
+			self.mcopt.ax.set_xlabel('dP/dt',fontsize=16)
+			self.mcopt.ax.set_ylabel('HJD0',fontsize=16)
+			self.mcopt.ax.set_zlabel('$\sigma$',fontsize=16)
+			
+			#self.mcopt.ax.tick_params(bottom=True,top=True,left=True,right=True,labelsize=14,direction='in')
+			self.mcopt.canvas.draw()
+
+		except:
+			pass
+		#moja stara wersja
+		'''try:
 			self.mcopt.figure.clf()
 			self.mcopt.ax = self.mcopt.figure.add_axes([0.1,0.1,0.8,0.8])
 			periods = []
@@ -1233,34 +1268,16 @@ class display(QtWidgets.QWidget):
 				period_changes.append(pt[1])
 				p0times.append(pt[2])
 
-		
-			
-			
-			'''self.mcopt.ax.plot(periods,np.array(self.syst_test.r0)/695700,'-',color='blue')
-				self.syst.ax.set_xlabel(xlabel,fontsize=16)
-				self.syst.ax.set_ylabel('$R[R_{\odot}]$',fontsize=16)
-				if float(self.syst.limup_field.text()) != 0 or float(self.syst.limdown_field.text()) != 0:
-					self.syst.ax.vlines(float(self.syst.limup_field.text()),np.min(self.syst_test.r0)/695700,np.max(self.syst_test.r0)/695700,linestyles='dashed',colors='black')
-					self.syst.ax.vlines(float(self.syst.limdown_field.text()),np.min(self.syst_test.r0)/695700,np.max(self.syst_test.r0)/695700,linestyles='dashed',colors='black')
-					a,b,sa,sb,s = metnk(self.syst_test.values,self.syst_test.r0)
-					self.syst.ax.fill_between(self.syst_test.values,(a*float(self.syst.limdown_field.text())+b)/695700,(a*float(self.syst.limup_field.text())+b)/695700,facecolor='lightgreen')
-					self.syst.ax.hlines(b/695700,np.min(self.syst_test.values),np.max(self.syst_test.values),linestyles='solid',colors='green')
-
-				self.syst.ax.set_title('$\sigma _R$='+str("{:.3f}".format(np.abs(ar*float(self.syst.limdown_field.text()))/695700.))+'$R_{\odot}$',fontsize=18)'''
-
 			self.mcopt.ax.plot(period_changes,self.mcopt_results.sigma,'o',color='blue')
 			self.mcopt.ax.set_xlabel(xlabel,fontsize=16)
 			self.mcopt.ax.set_ylabel('$\sigma$',fontsize=16)
-			#if float(self.syst.limup_field.text()) != 0 or float(self.syst.limdown_field.text()) != 0:
-			#		self.syst.ax.vlines(float(self.syst.limup_field.text()),np.min(self.syst_test.sigma),np.max(self.syst_test.sigma),linestyles='dashed',colors='black')
-			#		self.syst.ax.vlines(float(self.syst.limdown_field.text()),np.min(self.syst_test.sigma),np.max(self.syst_test.sigma),linestyles='dashed',colors='black')
-
+			
 
 			self.mcopt.ax.tick_params(bottom=True,top=True,left=True,right=True,labelsize=14,direction='in')
 			
 			self.mcopt.canvas.draw()
 		except:
-			pass
+			pass'''
 
 #test systematic errors on fitted parameters
 	def showdialog_testsyst(self):
