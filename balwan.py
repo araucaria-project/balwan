@@ -40,7 +40,11 @@ from animation import *
 irsbfile = './irsb.dat'	
 
 def parse_file(plik):
-	dane=os.popen('cat '+plik).read().split('\n')[:-1]
+	if 'posix' in os.name:
+		dane=os.popen('cat '+plik).read().split('\n')[:-1]
+	else:
+		dane = open(plik,'r')
+
 	pv = dane[0]
 	pk = dane[1]
 	prv =dane[2]
@@ -118,7 +122,10 @@ def parse_file(plik):
 	return [plikv,tv,mv,ev,kv,nv,vs],[plikk,tk,mk,ek,kk,nk,ks],[plikrv,trv,mrv,erv,krv,nrv,rvs],period,ebv,ebverr,plx,plxerr,psk,psrv,name,ptv,ptk,ptrv
 
 def readfile(plik):
-	d = os.popen('cat ' + plik).read()
+	if 'posix' in os.name:
+		d = os.popen('cat ' + plik).read()
+	else:
+		d = open(plik, 'r')
 	if '\n' in d:
 		dane = d.split('\n')[:-1]
 	elif '\r' in d:
@@ -544,7 +551,10 @@ class display(QtWidgets.QWidget):
 			self.color_field.setStyleSheet("color: black")
 
 	def addirsb(self,irsbfl):
-		text = os.popen('cat '+irsbfl).read().split('\n')[:-1]
+		if 'posix' in os.name:
+			text = os.popen('cat '+irsbfl).read().split('\n')[:-1]
+		else:
+			text = open(irsbfl,'r')
 		
 		for linia in text:
 			terms = []

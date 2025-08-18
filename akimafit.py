@@ -95,7 +95,10 @@ class signal():
 		
 
 	def read(self,tc,mc,ec,sc=None,downlimit=-500.,uplimit=500):
-		plik = os.popen('cat '+self.plik).read().split('\n')[:-1]
+		if 'posix' in os.name:
+			plik = os.popen('cat '+self.plik).read().split('\n')[:-1]
+		else:
+			plik = open(self.plik,'r')
 		for linia in plik:
 			if '#' not in linia:
 				
@@ -134,7 +137,10 @@ class signal():
 		print(self.templ_mag_shift,self.templ_phase_shift,self.templ_ampl)
 
 	def read_template(self):
-		txt = os.popen('cat '+self.template_file).read().split('\n')[:-1]
+		if 'posix' in os.name:
+			txt = os.popen('cat '+self.template_file).read().split('\n')[:-1]
+		else:
+			txt = open(self.template_file,'r')
 		self.template_time = []
 		self.template_mag = []
 		for linia in txt:
@@ -470,7 +476,10 @@ def main(lst):
 			period = float(lst[lst.index('-p')+1])
 	else:
 		try:
-			datafile = os.popen('cat /home/piotr/Dokumenty/science/MW_targets/analysis/GaiaEDR3/paper/MWT2CEP_data.csv').read().split('\n')[1:-1]
+			if 'posix' in os.name:
+				datafile = os.popen('cat /home/piotr/Dokumenty/science/MW_targets/analysis/GaiaEDR3/paper/MWT2CEP_data.csv').read().split('\n')[1:-1]
+			else:
+				datafile = open('/home/piotr/Dokumenty/science/MW_targets/analysis/GaiaEDR3/paper/MWT2CEP_data.csv','r')
 			names = []
 			periods = []
 			for linia in datafile:

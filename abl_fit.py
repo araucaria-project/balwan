@@ -85,7 +85,10 @@ class stars():
 		
 
 	def read(self,plik,namecol,plxcol,plxerrcol,percol,magcol,magerrcol,redcol,rederrcol,redcoef):
-		dane = os.popen('cat '+plik).read().split('\n')[:-1]
+		if 'posix' in os.name:
+			dane = os.popen('cat '+plik).read().split('\n')[:-1]
+		else:
+			dane=open(plik,'r')
 		for linia in dane:
 			if '#' not in linia:
 				if ',' in linia:
