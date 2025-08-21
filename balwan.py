@@ -1011,10 +1011,130 @@ class display(QtWidgets.QWidget):
 		self.e.setLayout(layout)
 		self.e.exec_()
 
+	def showdialog_curvessigma(self):
+		self.mcopt2 = QtWidgets.QDialog()
+		self.mcopt2.setWindowTitle("Test systematic")
+		self.mcopt2.figure= Figure(figsize=(8,8))
+		self.mcopt2.canvas = FigureCanvas(self.mcopt2.figure)
+		self.mcopt2.toolbar = NavigationToolbar(self.mcopt2.canvas,self)
+		self.mcopt2.b_run= QtWidgets.QPushButton(self)
+		self.mcopt2.b_run.setText("Run")
+		self.mcopt2.b_run.clicked.connect(self.sigmas)
+		
+		self.mcopt2.psize_label = QtWidgets.QLabel("Period range size")
+		self.mcopt2.psize_field = QtWidgets.QLineEdit("0.05")
+		self.mcopt2.pstep_label = QtWidgets.QLabel("Period step")
+		self.mcopt2.pstep_field = QtWidgets.QLineEdit("0.001")
+		layout = QtWidgets.QHBoxLayout()
+		vb1 = QtWidgets.QVBoxLayout()
+		vb2 = QtWidgets.QVBoxLayout()
+		vb1.addWidget(self.mcopt2.psize_label)
+		vb1.addWidget(self.mcopt2.psize_field)
+		vb1.addWidget(self.mcopt2.pstep_label)
+		vb1.addWidget(self.mcopt2.pstep_field)
+		vb1.addWidget(self.mcopt2.b_run)
+		vb2.addWidget(self.mcopt2.canvas)
+		vb2.addWidget(self.mcopt2.toolbar)
+		layout.addLayout(vb1)
+		layout.addLayout(vb2)
+		self.mcopt2.setLayout(layout)
+		self.mcopt2.exec_()
+		
+
+	def sigma_poly(self,x,y,akima):
+		y_fit = akima.__call__(x)
+		difference = []
+		for i in range(len(y)):
+			dif = abs(y[i] - y_fit[i])
+			difference.append(dif)
+		difference = np.array(difference)
+		difference_pow2 = difference**2
+		sum_of_differences = np.sum(difference_pow2)
+		sqrt_sum = np.sqrt(sum_of_differences)
+		sigma = sqrt_sum/np.sqrt(len(y))
+		return sigma
+
+
+	def sigmas(self):
+		period_0,dp,hjd = self.signals[0].period
+		p_range = float(self.mcopt2.psize_field.text())
+		p_step = float(self.mcopt2.pstep_field.text())
+		pold = self.signals[0].period
+		mean_time_V = np.mean(self.signals[0].time)
+		period_1_v = period_0 + dp*(mean_time_V-hjd)/365.25
+		sigma_v = []
+		periods_v = []
+		periods = np.arange(period_1_v-p_range, period_1_v+p_range, p_step)
+		for P in periods:
+			p = [P,0,0]
+			periods_v.append(P)
+			#print(pnew)
+			self.signals[0].period = p
+			#self.signals[1].period = self.pnew
+			self.signals[0].phasing()
+			#self.signals[1].phasing()
+			#self.signals[1].fit()
+			a, b, akima_v = self.signals[0].fit()
+			sig = self.sigma_poly(self.signals[0].phase,self.signals[0].flux,akima_v)
+			
+			sigma_v.append(sig)
+			
+		mean_time_rv = np.mean(self.signals[2].time)
+		period_1_rv = period_0 + dp*(mean_time_rv-hjd)/365.25
+		sigma_rv = []
+		periods_rv = []
+		periods = np.arange(period_1_rv-p_range, period_1_rv+p_range, p_step)
+		for P in periods:
+			p = [P,0,0]
+			periods_rv.append(P)
+			#print(pnew)
+			#self.signals[1].period = self.pnew
+			self.signals[2].period = p
+			#self.signals[1].phasing()
+			#self.signals[1].fit()
+			self.signals[2].phasing()
+			a, b, akima_rv = self.signals[2].fit()
+			sig = self.sigma_poly(self.signals[2].phase,self.signals[2].mag,akima_rv)
+			sigma_rv.append(sig)
+		
+		self.signals[0].period = pold
+		self.signals[1].period = pold
+		self.signals[2].period = pold
+		self.signals[0].phasing()
+		self.signals[1].phasing()
+		self.signals[2].phasing()
+		self.signals[0].fit()
+		self.signals[1].fit()
+		self.signals[2].fit()
+		self.mcopt2.figure.clf()
+		try:
+			gs = gridspec.GridSpec(ncols=1, nrows=2,figure=self.figure)
+		except:		
+			gs = gridspec.GridSpec(ncols=1, nrows=2,wspace=0.5,hspace=0.5)
+
+		phasename = '$\phi$'
+		self.mcopt2.ax1 = self.mcopt2.figure.add_subplot(gs[0,0])
+		self.mcopt2.ax2 = self.mcopt2.figure.add_subplot(gs[1,0])
+		self.mcopt2.ax1.plot(periods_v, sigma_v, color='blue')
+		self.mcopt2.ax1.plot([period_1_v],[np.min(sigma_v)],'d',color='red')
+		self.mcopt2.ax1.set_xlabel('period[d]',fontsize=16)
+		self.mcopt2.ax1.set_ylabel('$V$ $\sigma$',fontsize=16)
+		
+		self.mcopt2.ax2.plot(periods_rv, sigma_rv, color='blue')
+		self.mcopt2.ax2.plot([period_1_rv],[np.min(sigma_rv)],'d',color='red')
+		self.mcopt2.ax2.set_xlabel('period[d]',fontsize=16)
+		self.mcopt2.ax2.set_ylabel('$RV$ $\sigma$',fontsize=16)
+		
+			
+		self.mcopt2.canvas.draw()
+		
+			
+		return periods_v, sigma_v, periods_rv, sigma_rv	
+
 	def showdialog_mcopt(self):
 		
 		self.mcopt = QtWidgets.QDialog()
-		self.mcopt.setWindowTitle("Test systematic")
+		self.mcopt.setWindowTitle("MC period optimisation")
 		self.mcopt.file_label= QtWidgets.QLabel('File:',self)
 		self.mcopt.file_field = QtWidgets.QLineEdit()
 		#self.d.file_field.textChanged[str].connect(self.filechanged)
@@ -1063,12 +1183,18 @@ class display(QtWidgets.QWidget):
 		self.mcopt.b_cancel.setText("Cancel")
 		self.mcopt.b_cancel.clicked.connect(self.b_cancel_mcopt_clicked)
 
+		self.mcopt.b_sigma= QtWidgets.QPushButton(self)
+		self.mcopt.b_sigma.setText("Curves sigma")
+		self.mcopt.b_sigma.clicked.connect(self.showdialog_curvessigma)
+
 		#------------------display image-----------------------------
 
 		# image
 		self.mcopt.figure= Figure(figsize=(8,6))
 		self.mcopt.canvas = FigureCanvas(self.mcopt.figure)
 		self.mcopt.toolbar = NavigationToolbar(self.mcopt.canvas,self)
+
+		
 
 		self.mcopt.buttons_group2 = QtWidgets.QButtonGroup()
 		self.mcopt.b_plotp = QtWidgets.QRadioButton("Plot p")
@@ -1127,6 +1253,7 @@ class display(QtWidgets.QWidget):
 
 		h6.addWidget(self.mcopt.b_run)
 		h6.addWidget(self.mcopt.b_cancel)
+		h7.addWidget(self.mcopt.b_sigma)
 
 		hright1.addWidget(self.mcopt.b_plotp)
 		hright1.addWidget(self.mcopt.b_plotr)
@@ -1138,7 +1265,7 @@ class display(QtWidgets.QWidget):
 		left.addLayout(h4)
 		left.addLayout(h5)
 		left.addLayout(h6)
-		
+		left.addLayout(h7)
 		
 		right.addWidget(self.mcopt.canvas)
 		right.addWidget(self.mcopt.toolbar)
