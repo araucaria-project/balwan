@@ -1061,6 +1061,7 @@ class display(QtWidgets.QWidget):
 		p_step = float(self.mcopt2.pstep_field.text())
 		pold = self.signals[0].period
 		mean_time_V = np.mean(self.signals[0].time)
+		print('Mean HJD V '+str(mean_time_V))
 		period_1_v = period_0 + dp*(mean_time_V-hjd)/365.25
 		sigma_v = []
 		periods_v = []
@@ -1080,6 +1081,7 @@ class display(QtWidgets.QWidget):
 			sigma_v.append(sig)
 			
 		mean_time_rv = np.mean(self.signals[2].time)
+		print('Mean HJD RV '+str(mean_time_rv))
 		period_1_rv = period_0 + dp*(mean_time_rv-hjd)/365.25
 		sigma_rv = []
 		periods_rv = []
