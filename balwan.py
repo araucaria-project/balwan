@@ -82,6 +82,14 @@ def parse_file(plik):
 			ptrv = ''
 	except:
 		ptrv=''	
+	ocfile = ['',1,2,3000,3000,3000]
+	if 'OC:' in dane[-1]:
+		d=dane[-1].split(':')[1]
+		try:
+			ocfile = [d.split(',')[0],int(d.split(',')[1]),int(d.split(',')[2]),int(d.split(',')[3]),int(d.split(',')[4]),int(d.split(',')[5])]
+		except:
+			ocfile = ['',1,2,3000,3000,3000]
+
 		
 	#print('pliktv',pliktv)
 
@@ -119,7 +127,7 @@ def parse_file(plik):
 	except:
 		rvs = 0.
 
-	return [plikv,tv,mv,ev,kv,nv,vs],[plikk,tk,mk,ek,kk,nk,ks],[plikrv,trv,mrv,erv,krv,nrv,rvs],period,ebv,ebverr,plx,plxerr,psk,psrv,name,ptv,ptk,ptrv
+	return [plikv,tv,mv,ev,kv,nv,vs],[plikk,tk,mk,ek,kk,nk,ks],[plikrv,trv,mrv,erv,krv,nrv,rvs],period,ebv,ebverr,plx,plxerr,psk,psrv,name,ptv,ptk,ptrv,ocfile
 
 def readfile(plik):
 	if 'posix' in os.name:
@@ -223,8 +231,12 @@ class display(QtWidgets.QWidget):
 		self.b2_2.clicked.connect(self.b2_2_clicked)
 
 		self.b2_3 = QtWidgets.QPushButton(self)#1st file button
-		self.b2_3.setText("Exit")
+		self.b2_3.setText("O-C")
 		self.b2_3.clicked.connect(self.b2_3_clicked)
+
+		self.b_exit = QtWidgets.QPushButton(self)#1st file button
+		self.b_exit.setText("EXIT")
+		self.b_exit.clicked.connect(self.bexit_clicked)
 
 		#----edit parameters-------
 	
@@ -523,6 +535,7 @@ class display(QtWidgets.QWidget):
 		vbox_left.addLayout(hbox_buttons2,1)
 		vbox_left.addLayout(hbox_buttons3,1)
 		vbox_left.addWidget(self.scroll,3)
+		vbox_left.addWidget(self.b_exit)
 		#vbox_left.addWidget(self.scroll2,3)
 
 		
@@ -587,11 +600,10 @@ class display(QtWidgets.QWidget):
 
 			self.signals = []
 
-			f1,f2,f3,period,ebv,ebverr,plx,plxerr,psk,psrv,name,pliktv,pliktk,pliktrv = parse_file(select_file[0])
-
-			self.signals.append(signal(f1[0],f1[1],f1[2],f1[3],period=period,k=f1[4],n=f1[5],shift=f1[6],name='',sc=None,hjd0=None,flux=True,ph=True,template_file=pliktv))
-			self.signals.append(signal(f2[0],f2[1],f2[2],f2[3],period=period,k=f2[4],n=f2[5],shift=f2[6],name='',sc=None,hjd0=self.signals[0].hjd0,flux=True,ph=True,template_file=pliktk))
-			self.signals.append(signal(f3[0],f3[1],f3[2],f3[3],period=period,k=f3[4],n=f3[5],shift=f3[6],name='',sc=None,hjd0=self.signals[0].hjd0,flux=False,ph=True,tomean=True,template_file=pliktrv))
+			f1,f2,f3,period,ebv,ebverr,plx,plxerr,psk,psrv,name,pliktv,pliktk,pliktrv,ocfile = parse_file(select_file[0])
+			self.signals.append(signal(f1[0],f1[1],f1[2],f1[3],period=period,k=f1[4],n=f1[5],shift=f1[6],name='',sc=None,hjd0=None,flux=True,ph=True,template_file=pliktv,oc_file=ocfile[0:4]))
+			self.signals.append(signal(f2[0],f2[1],f2[2],f2[3],period=period,k=f2[4],n=f2[5],shift=f2[6],name='',sc=None,hjd0=self.signals[0].hjd0,flux=True,ph=True,template_file=pliktk,oc_file=ocfile[0:3]+[ocfile[4]]))
+			self.signals.append(signal(f3[0],f3[1],f3[2],f3[3],period=period,k=f3[4],n=f3[5],shift=f3[6],name='',sc=None,hjd0=self.signals[0].hjd0,flux=False,ph=True,tomean=True,template_file=pliktrv,oc_file=ocfile[0:3]+[ocfile[5]]))
 			self.v_k_field.setText(str(f1[4]))
 			self.v_n_field.setText(str(f1[5]))
 			self.k_k_field.setText(str(f2[4]))
@@ -722,9 +734,198 @@ class display(QtWidgets.QWidget):
 		self.oldp = self.bw.p
 		self.update_plot(-1)
 
-	def b2_3_clicked(self):
+	def bexit_clicked(self):
 		self.close()
 
+	def b2_3_clicked(self):
+		self.showdialog_oc()
+
+
+	def showdialog_oc(self):
+		self.oc = QtWidgets.QDialog()
+		self.oc.setWindowTitle("O-C")
+		self.oc.buttons_group1 = QtWidgets.QButtonGroup()
+		
+		self.oc.b_plotv = QtWidgets.QRadioButton("V")
+		self.oc.b_plotv.setChecked(True)
+		self.oc.b_plotv.clicked.connect(lambda: self.btnstate_radio_oc(update=True))
+		self.oc.b_plotk = QtWidgets.QRadioButton("K")
+		self.oc.b_plotk.setChecked(False)
+		self.oc.b_plotk.clicked.connect(lambda: self.btnstate_radio_oc(update=True))
+		self.oc.b_plotrv = QtWidgets.QRadioButton("RV")
+		self.oc.b_plotrv.setChecked(False)
+		self.oc.b_plotrv.clicked.connect(lambda: self.btnstate_radio_oc(update=True))
+		
+		self.oc.buttons_group1.addButton(self.oc.b_plotv)
+		self.oc.buttons_group1.addButton(self.oc.b_plotk)
+		self.oc.buttons_group1.addButton(self.oc.b_plotrv)
+		
+
+		
+
+		self.oc.file_label= QtWidgets.QLabel('Select OC file:',self)
+		self.oc.file_field = QtWidgets.QLineEdit()
+
+		self.oc.step_label= QtWidgets.QLabel('Fitting step:',self)
+		self.oc.step_field = QtWidgets.QLineEdit('3000')
+
+		self.oc.b_select_ocfile = QtWidgets.QPushButton(self)
+		self.oc.b_select_ocfile.setText("Select file")
+		self.oc.b_select_ocfile.clicked.connect(self.b_select_ocfile_clicked)
+
+		self.oc.b_fit_oc = QtWidgets.QPushButton(self)
+		self.oc.b_fit_oc.setText("Fit")
+		self.oc.b_fit_oc.clicked.connect(self.b_fit_oc_clicked)
+
+		self.oc.b_apply_oc = QtWidgets.QPushButton(self)
+		self.oc.b_apply_oc.setText("Apply")
+		self.oc.b_apply_oc.clicked.connect(self.b_apply_oc_clicked)
+
+		self.oc.b_cancel = QtWidgets.QPushButton(self)
+		self.oc.b_cancel.setText("Cancel")
+		self.oc.b_cancel.clicked.connect(self.b_occancel_clicked)
+
+		self.oc.figure= Figure(figsize=(12,8))
+		self.oc.canvas = FigureCanvas(self.oc.figure)
+		self.oc.toolbar = NavigationToolbar(self.oc.canvas,self)
+		self.update_oc_data(0)
+		self.b_fit_oc_clicked()
+		self.update_oc_plot(0)
+		
+		layout = QtWidgets.QHBoxLayout()
+		vb1 = QtWidgets.QVBoxLayout()
+		vb2 = QtWidgets.QVBoxLayout()
+
+		vb1.addWidget(self.oc.file_label)
+		vb1.addWidget(self.oc.file_field)
+		vb1.addWidget(self.oc.b_select_ocfile)
+
+		vb1.addWidget(self.oc.step_label)
+		vb1.addWidget(self.oc.step_field)
+		
+		
+		vb1.addWidget(self.oc.b_plotv)
+		vb1.addWidget(self.oc.b_plotk)
+		vb1.addWidget(self.oc.b_plotrv)
+		
+		vb1.addWidget(self.oc.b_fit_oc)
+		vb1.addWidget(self.oc.b_apply_oc)
+		vb1.addWidget(self.oc.b_cancel)
+		
+		vb2.addWidget(self.oc.canvas)
+		vb2.addWidget(self.oc.toolbar)
+		layout.addLayout(vb1)
+		layout.addLayout(vb2)
+		self.oc.setLayout(layout)
+		self.oc.exec_()
+
+	def btnstate_radio_oc(self,update=False):
+		
+		if self.oc.b_plotv.isChecked():
+			if update:
+				self.update_oc_plot(0)
+				self.update_oc_data(0)
+			return 0 
+		elif self.oc.b_plotk.isChecked():
+			if update:
+				self.update_oc_plot(1)
+				self.update_oc_data(1)
+			return 1 
+		elif self.oc.b_plotrv.isChecked():
+			if update:
+				self.update_oc_plot(2)
+				self.update_oc_data(2)
+			return 2
+
+		
+
+
+	def update_oc_plot(self,i):
+		
+		self.oc.figure.clf()
+		try:
+			gs = gridspec.GridSpec(ncols=5, nrows=3,figure=self.oc.figure)
+		except:		
+			gs = gridspec.GridSpec(ncols=5, nrows=3,wspace=0.8,hspace=0.8)
+
+		try:
+			self.oc.plot = self.oc.figure.add_subplot(gs[:,0:3])
+			self.oc.plot_v = self.oc.figure.add_subplot(gs[0,3:])
+			self.oc.plot_k = self.oc.figure.add_subplot(gs[1,3:])
+			self.oc.plot_rv = self.oc.figure.add_subplot(gs[2,3:])
+			self.oc.plot.set_xlabel('$HJD$',fontsize=14)
+			self.oc.plot.set_ylabel('$O-C$',fontsize=14)
+			self.oc.plot_v.set_xlabel('$\phi$',fontsize=14)
+			self.oc.plot_v.set_ylabel('$V$',fontsize=14)
+			self.oc.plot_k.set_xlabel('$\phi$',fontsize=14)
+			self.oc.plot_k.set_ylabel('$K$',fontsize=14)
+			self.oc.plot_rv.set_xlabel('$\phi$',fontsize=14)
+			self.oc.plot_rv.set_ylabel('$RV$',fontsize=14)
+			self.oc.plot_v.set_xlim(-0.1,1.1)
+			self.oc.plot_k.set_xlim(-0.1,1.1)
+			self.oc.plot_rv.set_xlim(-0.1,1.1)
+
+			x=self.signals[0].phasing_oc_forplots(self.signals[0].time)
+			y=self.signals[0].mag
+			self.oc.plot_v.plot(x,y,'.',color='blue')
+
+			x=self.signals[1].phasing_oc_forplots(self.signals[1].time)
+			y=self.signals[1].mag
+			self.oc.plot_k.plot(x,y,'.',color='blue')
+
+			x=self.signals[2].phasing_oc_forplots(self.signals[2].time)
+			y=self.signals[2].mag
+			self.oc.plot_rv.plot(x,y,'.',color='blue')
+
+			self.oc.plot.plot(self.signals[i].hjds_oc, self.signals[i].ocs,'.',color='blue',label='O-C data')
+			self.oc.plot.plot(self.signals[i].hjds_oc, self.signals[i].oc_fit,'-',color='orange',label='O-C fit')
+
+			self.oc.plot.plot(self.signals[i].time,self.signals[i].oc_interp,'.',color='red',label='measurements')
+
+			self.oc.plot.legend()
+			self.oc.figure.tight_layout()
+
+			self.oc.canvas.draw()
+		except:
+			pass
+	
+	def update_oc_data(self,i):
+		plik,hjdcol,occol,s = self.signals[i].ocfile
+		self.oc.file_field.setText(plik)
+		self.oc.step_field.setText(str(s))
+
+	def b_select_ocfile_clicked(self):
+		select_file = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file',  '.')
+		self.oc.file_field.setText(select_file[0])
+
+	def b_occancel_clicked(self):
+		self.oc.close()
+
+	def b_fit_oc_clicked(self,i=None):
+		try:
+			if i == None:
+				for signal in self.signals:
+
+					plik,hjdcol,occol,s = signal.ocfile
+					signal.oc(plik,hjdcol,occol,s)
+			else:
+
+				plik = self.oc.file_field.text()
+				hjdcol =0
+				occol = 2
+				s = int(self.oc.step_field.text())
+				i = self.btnstate_radio_oc()
+				self.signals[i].oc(plik,hjdcol,occol,s)
+				self.update_oc_plot(i)
+		except:
+			pass
+
+	def b_apply_oc_clicked(self):
+		#self.b_fit_oc_clicked()
+		for signal in self.signals:
+			signal.phasing()
+		
+		self.oc.close()
 
 	def selectionchange(self,i):
 		

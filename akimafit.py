@@ -7,6 +7,7 @@ import numpy as np
 from random import sample
 from abl_fit import param,random
 from scipy.optimize import curve_fit
+from scipy.interpolate import splev, splrep
 	
 
 def toflux(x):
@@ -23,14 +24,16 @@ def nottomag(x):
 
 
 class signal():
-	def __init__(self,plik,tcol,mcol,ercol,period,k,n,shift=0.,name='',sc=None,hjd0=None,flux=True,ph=True,tomean=False,ps=0.,downlimit=-500.,uplimit=500,template_file = ''):
+	def __init__(self,plik,tcol,mcol,ercol,period,k,n,shift=0.,name='',sc=None,hjd0=None,flux=True,ph=True,tomean=False,ps=0.,downlimit=-500.,uplimit=500,template_file = '',oc_file = ['',0,2,3000]):
 		self.plik = plik
 		self.tcol=tcol
 		self.mcol=mcol
 		self.ercol=ercol
 		self.period = period
 		self.shift = shift
-		print(self.period)
+		self.ocfile = oc_file
+		self.oc_ready = 0
+		#print(self.period)
 		self.name = name
 		self.k = k#knots step
 		self.n = n#size of bin
@@ -49,6 +52,8 @@ class signal():
 		self.ps=ps
 		self.tomean=tomean
 		self.template_file = template_file.split('[')[0]
+		if oc_file[0] != '':
+			self.oc(oc_file[0],oc_file[1],oc_file[2],oc_file[3])
 		try:
 			self.template_tcol = int(template_file.split('[')[1].split(',')[0])
 			self.template_mcol = int(template_file.split('[')[1].replace(']','',1).split(',')[1])
@@ -193,9 +198,63 @@ class signal():
 			self.template_phase = np.divide(np.mod(np.add(np.subtract(self.template_time,self.hjd0),self.ps*period),period),period)
 
 		self.template_phase = np.array(self.template_phase)
+
+	def oc(self,plik,hjdcol,occol,s):
+		self.ocfile = [plik,hjdcol,occol,s]
+		data = os.popen('cat '+plik).read().split('\n')[:-1]
+		self.hjds_oc = []
+		self.ocs = []
+		for linia in data:
+			if '#' not in linia:
+				self.hjds_oc.append(float(linia.split()[hjdcol]))
+				self.ocs.append(float(linia.split()[occol]))
+
+		self.oc_fit = self.interpolation(self.hjds_oc,self.ocs,s_value=s)
+		self.oc_interp = []
+		for t in self.time:
+			self.oc_interp.append(np.interp(t,self.hjds_oc,self.oc_fit))
+		self.oc_ready = 1
 	 
+	def interpolation(self,x,y,s_value=3000):
+		
+		spl = splrep(x, y, s=s_value)
+		y2 = splev(x, spl)
+		return y2
 
 	def phasing(self,period=None,ps=0.):
+		if self.ocfile[0]!='':
+			self.phasing_oc(period,ps)
+		else:
+			self.phasing_nooc(period,ps)
+
+	def phasing_oc(self,period=None,ps=0.):
+		self.phase = []
+		if period==None:
+			period=self.period
+
+		#try:
+		if True:
+			for i,t in enumerate(self.time):
+				oc_interp = np.interp(t,self.hjds_oc,self.oc_fit)
+				self.phase.append((((t-self.hjd0+self.ps*period[0]-oc_interp)%period[0])/period[0]))
+			
+
+	def phasing_oc_forplots(self,time,period=None,ps=0.):
+		phase = []
+		if period==None:
+			period=self.period
+
+		#try:
+		if True:
+			for i,t in enumerate(time):
+				oc_interp = np.interp(t,self.hjds_oc,self.oc_fit)
+				phase.append((((t-self.hjd0+self.ps*period[0]-oc_interp)%period[0])/period[0]))
+			
+		return phase	
+
+			#self.phase = ((self.time - (oc_interp))%period)/period
+
+	def phasing_nooc(self,period=None,ps=0.):
 		self.phase = []
 		if period==None:
 			period=self.period
