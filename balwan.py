@@ -1905,8 +1905,8 @@ class display(QtWidgets.QWidget):
 			ar,br=0,0
 		if self.syst_what == 0:
 			if float(self.syst.limup_field.text()) != 0 or float(self.syst.limdown_field.text()) != 0:
-				#self.syst.ax.vlines(float(self.syst.limup_field.text()),np.min(self.syst_test.p),np.max(self.syst_test.p),linestyles='dashed',colors='black')
-				#self.syst.ax.vlines(float(self.syst.limdown_field.text()),np.min(self.syst_test.p),np.max(self.syst_test.p),linestyles='dashed',colors='black')
+				self.syst.ax.vlines(float(self.syst.limup_field.text()),np.min(self.syst_test.p),np.max(self.syst_test.p),linestyles='dashed',colors='black')
+				self.syst.ax.vlines(float(self.syst.limdown_field.text()),np.min(self.syst_test.p),np.max(self.syst_test.p),linestyles='dashed',colors='black')
 
 				minp = None
 				maxp = None
@@ -1917,7 +1917,7 @@ class display(QtWidgets.QWidget):
 					if minp != None and maxp == None and pt > float(self.syst.limup_field.text()):
 						maxp = 	self.syst_test.p[k-1]
 				
-				a,b,sa,sb,s = metnk(self.syst_test.values[5:-5],self.syst_test.p[5:-5])
+				a,b,sa,sb,s = metnk(self.syst_test.values[2:-2],self.syst_test.p[2:-2])
 				if self.oldp != 0:
 					bb = b
 					b = self.oldp
@@ -1926,10 +1926,10 @@ class display(QtWidgets.QWidget):
 					bb=0
 
 				#print minp,maxp
-				#self.syst.ax.fill_between(self.syst_test.values,a*float(self.syst.limdown_field.text())+b,a*float(self.syst.limup_field.text())+b,facecolor='lightgreen')'''
+				self.syst.ax.fill_between(self.syst_test.values,a*float(self.syst.limdown_field.text())+b,a*float(self.syst.limup_field.text())+b,facecolor='lightgreen')
 				#self.syst.ax.fill_between(self.syst_test.values,minp,maxp,facecolor='lightgreen')
-				#self.syst.ax.hlines(b,np.min(self.syst_test.values),np.max(self.syst_test.values),linestyles='solid',colors='green')
-				self.syst.ax.plot(self.syst_test.values,np.array(self.syst_test.p)-b+1.34,'-',color='blue')
+				self.syst.ax.hlines(b,np.min(self.syst_test.values),np.max(self.syst_test.values),linestyles='solid',colors='green')
+				self.syst.ax.plot(self.syst_test.values,np.array(self.syst_test.p),'-',color='blue')
 			self.syst.ax.set_xlabel(xlabel,fontsize=16)
 			self.syst.ax.set_ylabel('$p-factor$',fontsize=16)
 			#self.syst.ax.set_title('$\sigma _p$='+str("{:.3f}".format(np.abs(ap*float(self.syst.limdown_field.text())))),fontsize=18)
@@ -1939,12 +1939,12 @@ class display(QtWidgets.QWidget):
 			self.syst.ax.plot(self.syst_test.values,np.array(self.syst_test.r0)/695700,'-',color='blue')
 			self.syst.ax.set_xlabel(xlabel,fontsize=16)
 			self.syst.ax.set_ylabel('$R[R_{\odot}]$',fontsize=16)
-			#if float(self.syst.limup_field.text()) != 0 or float(self.syst.limdown_field.text()) != 0:
-				#self.syst.ax.vlines(float(self.syst.limup_field.text()),np.min(self.syst_test.r0)/695700,np.max(self.syst_test.r0)/695700,linestyles='dashed',colors='black')
-				#self.syst.ax.vlines(float(self.syst.limdown_field.text()),np.min(self.syst_test.r0)/695700,np.max(self.syst_test.r0)/695700,linestyles='dashed',colors='black')
-				#a,b,sa,sb,s = metnk(self.syst_test.values,self.syst_test.r0)
-				#self.syst.ax.fill_between(self.syst_test.values,(a*float(self.syst.limdown_field.text())+b)/695700,(a*float(self.syst.limup_field.text())+b)/695700,facecolor='lightgreen')
-				#self.syst.ax.hlines(b/695700,np.min(self.syst_test.values),np.max(self.syst_test.values),linestyles='solid',colors='green')
+			if float(self.syst.limup_field.text()) != 0 or float(self.syst.limdown_field.text()) != 0:
+				self.syst.ax.vlines(float(self.syst.limup_field.text()),np.min(self.syst_test.r0)/695700,np.max(self.syst_test.r0)/695700,linestyles='dashed',colors='black')
+				self.syst.ax.vlines(float(self.syst.limdown_field.text()),np.min(self.syst_test.r0)/695700,np.max(self.syst_test.r0)/695700,linestyles='dashed',colors='black')
+				a,b,sa,sb,s = metnk(self.syst_test.values,self.syst_test.r0)
+				self.syst.ax.fill_between(self.syst_test.values,(a*float(self.syst.limdown_field.text())+b)/695700,(a*float(self.syst.limup_field.text())+b)/695700,facecolor='lightgreen')
+				self.syst.ax.hlines(b/695700,np.min(self.syst_test.values),np.max(self.syst_test.values),linestyles='solid',colors='green')
 
 			#self.syst.ax.set_title('$\sigma _R$='+str("{:.3f}".format(np.abs(ar*float(self.syst.limdown_field.text()))/695700.))+'$R_{\odot}$',fontsize=18)
 

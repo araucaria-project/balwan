@@ -254,6 +254,41 @@ class signal():
 
 			#self.phase = ((self.time - (oc_interp))%period)/period
 
+	'''def phasing_nooc(self,period=None,ps=0.):
+		self.phase = []
+		if period==None:
+			period=self.period
+
+		#try:
+		if True:
+			
+			for i,t in enumerate(self.time):
+				direction = -1.
+				if self.time[i] < self.hjd0:
+					direction = 1.
+				if float(period[1]) != 0.:
+					pt = period[0]+period[1]*int(t-period[2])/365.25
+					hjd0 = self.hjd0 + pt*int(((t-period[2]))/period[0]) + 0.5*pt*period[1]*np.power(int((t-period[2])/period[0]),2.)/(365.25)
+					print(period[2],hjd0,pt,int((t-period[2])/period[0]))
+
+				else:
+					hjd0 = self.hjd0
+					pt = period[0]
+				while direction*(hjd0 - self.time[i]) < 0.:
+					print(t-period[2])
+					periodt = period[0]+period[1]*(hjd0-period[2])/365.25
+					hjd0 = hjd0 + direction*periodt
+					print(hjd0)
+				
+
+				#periodt = period[0]+period[1]*(self.time[i]-period[2])/365.25
+				self.phase.append((((self.time[i]-hjd0+self.ps*pt)%pt)/pt))
+				
+		#except:
+		#	self.phase = np.divide(np.mod(np.add(np.subtract(self.time,self.hjd0),self.ps*period),period),period)
+
+		self.phase = np.array(self.phase)'''
+
 	def phasing_nooc(self,period=None,ps=0.):
 		self.phase = []
 		if period==None:
